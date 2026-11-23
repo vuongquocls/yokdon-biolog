@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#2d5a27">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Yok Đôn BioLog">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/svg+xml" href="./icon.svg">
+  <link rel="apple-touch-icon" href="./icon.svg">
+  <title>Yok Đôn BioLog — Giám sát Đa dạng sinh học</title>
+  <style>
+    :root { --primary: #2d5a27; --bg: #f3f6f2; --card: #ffffff; --border: #d4ddd3; --text: #1f2933; --muted: #52606d; }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0 0 36px; }
+    .topbar { position: sticky; top: 0; z-index: 20; background: var(--primary); color: #fff; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
+    .topbar h1 { font-size: 16px; margin: 0; font-weight: 700; }
+    .badge { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
+    .badge.online { background: #dcfce7; color: #166534; }
+    .badge.offline { background: #fef3c7; color: #92400e; }
+    .container { max-width: 560px; margin: 12px auto 0; padding: 0 12px; }
+    .sync-bar { background: #fff8e1; border: 1px solid #ffe082; border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; display: none; justify-content: space-between; align-items: center; gap: 10px; }
+    .sync-bar.show { display: flex; }
+    .sync-bar span { font-size: 13px; color: #7c4d00; font-weight: 600; }
+    .btn-sync { background: #d97706; color: #fff; border: none; border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    .card { background: var(--card); border-radius: 12px; padding: 16px; margin-bottom: 12px; border: 1px solid var(--border); }
+    .card-title { font-size: 14px; font-weight: 700; color: var(--primary); margin: 0 0 10px; text-transform: uppercase; letter-spacing: 0.3px; }
+    label { display: block; font-size: 13px; font-weight: 600; margin: 10px 0 4px; }
+    input, select, textarea { width: 100%; padding: 10px; border: 1px solid #cbd2d9; border-radius: 8px; font-size: 14px; background: #fff; }
+    .row { display: flex; gap: 10px; }
+    .row > div { flex: 1; }
+    .btn { width: 100%; padding: 12px; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; }
+    .btn-gps { background: #e8f5e9; color: var(--primary); border: 1px solid #a5d6a7; margin-top: 8px; padding: 10px; font-size: 14px; }
+    .btn-submit { background: var(--primary); color: #fff; margin-top: 6px; }
+    .btn-submit:disabled { background: #9aa5b1; cursor: not-allowed; }
+    .status { font-size: 13px; margin-top: 10px; padding: 10px 12px; border-radius: 8px; display: none; line-height: 1.4; }
+    .status.ok { background: #e8f5e9; color: #1b5e20; display: block; }
+    .status.warn { background: #fff8e1; color: #8d4e00; display: block; }
+    .status.err { background: #ffebee; color: #b71c1c; display: block; }
+    .preview { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .preview img { width: 68px; height: 68px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); }
+    .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .history-item { font-size: 12px; padding: 8px 0; border-bottom: 1px solid #edf2ed; display: flex; justify-content: space-between; gap: 8px; }
+    .history-item:last-child { border-bottom: none; }
+    .tag-ok { color: #166534; font-weight: 600; }
+    .tag-wait { color: #b45309; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>Yok Đôn BioLog</h1>
+    <span id="netBadge" class="badge online">Đang kiểm tra...</span>
+  </div>
+
+  <div class="container">
+    <div id="syncBar" class="sync-bar">
+      <span id="syncText">Có 0 phiếu chờ đồng bộ</span>
+      <button type="button" id="syncBtn" class="btn-sync" onclick="syncQueue()">Đồng bộ ngay</button>
+    </div>
+
+    <form id="obsForm">
+      <div class="card">
+        <div class="card-title">1. Người ghi nhận</div>
+        <label>Đơn vị / Nhóm nguồn *</label>
+        <select id="unit" required onchange="saveProfile()">
+          <option value="Trung tâm GDMT&DV">Trung tâm GDMT&DV</option>
+          <option value="Hạt Kiểm lâm / Trạm KLB">Hạt Kiểm lâm / Trạm KLB</option>
+          <option value="Phòng KH&HTQT">Phòng KH&HTQT</option>
+          <option value="Phòng chuyên môn khác">Phòng chuyên môn khác</option>
+          <option value="Chuyên gia / Cộng tác viên">Chuyên gia / Cộng tác viên</option>
+          <option value="Du khách / Khách tham quan">Du khách / Khách tham quan</option>
+        </select>
+        <div class="row">
+          <div>
+            <label>Họ tên *</label>
+            <input type="text" id="reporterName" placeholder="VD: Y Siêm / Trạm KLB 4" required oninput="saveProfile()">
+          </div>
+          <div>
+            <label>SĐT / Trạm / Ghi chú</label>
+            <input type="text" id="contact" placeholder="VD: Trạm Đắk Lao / Zalo" oninput="saveProfile()">
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">2. Thông tin loài (1.746 loài Yok Đôn)</div>
+        <div class="row">
+          <div>
+            <label>Nhóm loài *</label>
+            <select id="group" required onchange="filterSpeciesList()">
+              <option value="Chim">Chim</option>
+              <option value="Thú">Thú</option>
+              <option value="Thực vật">Thực vật</option>
+              <option value="Bò sát">Bò sát</option>
+              <option value="Cá">Cá</option>
+              <option value="Khác / Chưa rõ">Khác / Chưa rõ</option>
+            </select>
+          </div>
+          <div>
+            <label>Phương pháp</label>
+            <select id="method">
+              <option value="Chụp ảnh">Chụp ảnh</option>
+              <option value="Quan sát trực tiếp">Quan sát trực tiếp</option>
+              <option value="Bẫy ảnh">Bẫy ảnh</option>
+              <option value="Ghi âm tiếng kêu">Ghi âm tiếng kêu</option>
+              <option value="Dấu vết gián tiếp">Dấu vết gián tiếp</option>
+            </select>
+          </div>
+        </div>
+
+        <label>Tìm & chọn loài (để trống nếu chưa rõ loài)</label>
+        <input type="text" id="speciesSearch" list="speciesDatalist" placeholder="Gõ tên tiếng Việt hoặc tên khoa học...">
+        <datalist id="speciesDatalist"></datalist>
+        <div id="catalogMeta" class="hint">Đang nạp danh mục loài ngoại tuyến...</div>
+
+        <div class="row">
+          <div>
+            <label>Số lượng</label>
+            <input type="number" id="quantity" value="1" min="1" max="5000">
+          </div>
+          <div>
+            <label>Đơn vị đếm</label>
+            <select id="countUnit">
+              <option value="Cá thể">Cá thể</option>
+              <option value="Đàn / Bầy">Đàn / Bầy</option>
+              <option value="Cây / Cụm">Cây / Cụm</option>
+              <option value="Tổ / Hang">Tổ / Hang</option>
+              <option value="Dấu vết (Phân/Dấu chân)">Dấu vết</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">3. Vị trí GPS & Sinh cảnh</div>
+        <div class="row">
+          <div><input type="text" id="lat" placeholder="Vĩ độ (Lat)"></div>
+          <div><input type="text" id="lon" placeholder="Kinh độ (Lon)"></div>
+        </div>
+        <button type="button" class="btn btn-gps" onclick="getGPS()">Lấy tọa độ GPS hiện tại (dùng được khi mất sóng)</button>
+
+        <label>Địa điểm / Tiểu khu / Tuyến</label>
+        <input type="text" id="locationNote" placeholder="VD: Tiểu khu 421 - Bàu nước gần sông Sêrêpốk">
+
+        <div class="row">
+          <div>
+            <label>Sinh cảnh</label>
+            <select id="habitat">
+              <option value="Rừng khộp">Rừng khộp</option>
+              <option value="Rừng thường xanh ven sông/suối">Ven sông / suối</option>
+              <option value="Bàu nước / Đầm lầy">Bàu nước / Đầm lầy</option>
+              <option value="Sông Sêrêpốk / Suối">Sông Sêrêpốk / Suối</option>
+              <option value="Trảng cỏ / Cây bụi">Trảng cỏ / Cây bụi</option>
+              <option value="Khu hành chính / Trạm KLB">Khu HC / Trạm KLB</option>
+              <option value="Ven ranh giới / Nương rẫy">Ven ranh giới / Nương rẫy</option>
+            </select>
+          </div>
+          <div>
+            <label>Hành vi / Trạng thái</label>
+            <select id="behavior">
+              <option value="Kiếm ăn">Kiếm ăn</option>
+              <option value="Đậu nghỉ / Di chuyển">Đậu nghỉ / Di chuyển</option>
+              <option value="Làm tổ / Sinh sản">Làm tổ / Sinh sản</option>
+              <option value="Đang ra hoa / Kết quả">Đang ra hoa / Kết quả</option>
+              <option value="Tái sinh / Cây con">Tái sinh / Cây con</option>
+              <option value="Dấu vết (Phân/Dấu chân/Tiếng kêu)">Dấu vết / Tiếng kêu</option>
+              <option value="Bị thương / Mắc bẫy">Bị thương / Mắc bẫy</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">4. Ảnh hiện trường (tối đa 5 ảnh)</div>
+        <input type="file" id="photos" accept="image/*" multiple onchange="previewImages()">
+        <div id="preview" class="preview"></div>
+        <div class="hint">Ảnh tự nén nhẹ để lưu an toàn khi mất sóng và tải nhanh lên Google Drive.</div>
+
+        <label>Ghi chú hiện trường / Mối đe dọa</label>
+        <textarea id="notes" rows="2" placeholder="VD: 1 trống 2 mái, phát hiện bẫy dây gần đó..."></textarea>
+      </div>
+
+      <button type="submit" id="submitBtn" class="btn btn-submit">Lưu & Gửi ghi nhận</button>
+      <div id="statusBox" class="status"></div>
+    </form>
+
+    <div id="historyCard" class="card" style="display:none; margin-top:12px;">
+      <div class="card-title">Nhật ký gần đây trên máy này</div>
+      <div id="historyList"></div>
+    </div>
+  </div>
+
+  <script>
+    // === BẮT BUỘC: Dán URL Web App của Google Apps Script (Code.gs) vào dòng dưới đây ===
+    const GAS_WEBAPP_URL = 'DAN_URL_WEB_APP_APPS_SCRIPT_VAO_DAY';
+
+    const DB_NAME = 'YokDonBioLogPWA';
+    const DB_VERSION = 1;
+    const MAX_FILES = 5;
+    const MAX_DIM = 1600;
+    let db = null;
+    let speciesCatalog = [];
+    let isSyncing = false;
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
+
+    function openDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = e => {
+          const d = e.target.result;
+          if (!d.objectStoreNames.contains('queue')) d.createObjectStore('queue', { keyPath: 'clientUuid' });
+          if (!d.objectStoreNames.contains('meta')) d.createObjectStore('meta', { keyPath: 'key' });
+          if (!d.objectStoreNames.contains('history')) d.createObjectStore('history', { keyPath: 'clientUuid' });
+        };
+        req.onsuccess = e => { db = e.target.result; resolve(db); };
+        req.onerror = e => reject(e.target.error);
+      });
+    }
+
+    function dbOp(storeName, mode, fn) {
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(storeName, mode);
+        const req = fn(tx.objectStore(storeName));
+        if (req && 'onsuccess' in req) {
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = e => reject(e.target.error);
+        } else {
+          tx.oncomplete = () => resolve();
+          tx.onerror = e => reject(e.target.error);
+        }
+      });
+    }
+
+    // Dùng text/plain;charset=utf-8 để tránh CORS preflight OPTIONS của Google Apps Script
+    async function postToAppsScript(payload) {
+      if (!GAS_WEBAPP_URL || GAS_WEBAPP_URL.indexOf('https://script.google.com/') !== 0) {
+        throw new Error('Chưa cấu hình GAS_WEBAPP_URL trong file index.html');
+      }
+      const res = await fetch(GAS_WEBAPP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.json();
+    }
+
+    async function loadCatalog() {
+      // 1. Nạp ngay bản danh mục đóng gói sẵn (catalog.json) được cache 100% bởi Service Worker
+      try {
+        const localRes = await fetch('./catalog.json');
+        const localData = await localRes.json();
+        if (localData && Array.isArray(localData.items)) {
+          speciesCatalog = localData.items;
+          filterSpeciesList();
+          document.getElementById('catalogMeta').textContent = 'Sẵn sàng ' + speciesCatalog.length + ' loài (dùng ngoại tuyến 100%).';
+        }
+      } catch (_) {
+        const cached = await dbOp('meta', 'readonly', s => s.get('speciesCatalog'));
+        if (cached && cached.items) {
+          speciesCatalog = cached.items;
+          filterSpeciesList();
+        }
+      }
+
+      // 2. Nếu có mạng và đã cấu hình Apps Script, tự cập nhật danh mục mới nhất nếu Phòng KH&HTQT có thêm loài
+      if (navigator.onLine && GAS_WEBAPP_URL.indexOf('https://script.google.com/') === 0) {
+        try {
+          const r = await fetch(GAS_WEBAPP_URL + '?action=catalog');
+          const live = await r.json();
+          if (live && live.success && live.items && live.items.length > 0) {
+            speciesCatalog = live.items;
+            await dbOp('meta', 'readwrite', s => s.put({ key: 'speciesCatalog', items: speciesCatalog }));
+            filterSpeciesList();
+            document.getElementById('catalogMeta').textContent = 'Đã đồng bộ ' + speciesCatalog.length + ' loài mới nhất từ VQG Yok Đôn.';
+          }
+        } catch (_) {}
+      }
+    }
+
+    function filterSpeciesList() {
+      const grp = document.getElementById('group').value;
+      const dl = document.getElementById('speciesDatalist');
+      dl.innerHTML = '';
+      const frag = document.createDocumentFragment();
+      speciesCatalog.forEach(item => {
+        if (item.g === grp || grp === 'Khác / Chưa rõ') {
+          const opt = document.createElement('option');
+          opt.value = item.l;
+          frag.appendChild(opt);
+        }
+      });
+      dl.appendChild(frag);
+    }
+
+    function saveProfile() {
+      localStorage.setItem('yd_profile', JSON.stringify({
+        unit: document.getElementById('unit').value,
+        reporterName: document.getElementById('reporterName').value,
+        contact: document.getElementById('contact').value
+      }));
+    }
+
+    function loadProfile() {
+      try {
+        const p = JSON.parse(localStorage.getItem('yd_profile') || '{}');
+        if (p.unit) document.getElementById('unit').value = p.unit;
+        if (p.reporterName) document.getElementById('reporterName').value = p.reporterName;
+        if (p.contact) document.getElementById('contact').value = p.contact;
+      } catch (_) {}
+    }
+
+    function getGPS() {
+      if (!navigator.geolocation) return showStatus('Thiết bị không hỗ trợ GPS.', 'err');
+      showStatus('Đang bắt tín hiệu vệ tinh GPS...', 'warn');
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          document.getElementById('lat').value = pos.coords.latitude.toFixed(6);
+          document.getElementById('lon').value = pos.coords.longitude.toFixed(6);
+          showStatus('Đã lấy GPS (sai số ~' + Math.round(pos.coords.accuracy) + 'm).', 'ok');
+        },
+        () => showStatus('Không bắt được GPS. Hãy bật định vị (Location) hoặc mô tả tiểu khu.', 'err'),
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+      );
+    }
+
+    function previewImages() {
+      const input = document.getElementById('photos');
+      const wrap = document.getElementById('preview');
+      wrap.innerHTML = '';
+      if (input.files.length > MAX_FILES) showStatus('Chỉ lấy tối đa 5 ảnh đầu tiên mỗi lần ghi.', 'warn');
+      Array.from(input.files).slice(0, MAX_FILES).forEach(f => {
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(f);
+        wrap.appendChild(img);
+      });
+    }
+
+    function compressImage(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          const img = new Image();
+          img.onload = () => {
+            let w = img.width, h = img.height;
+            if (w > MAX_DIM || h > MAX_DIM) {
+              const s = Math.min(MAX_DIM / w, MAX_DIM / h);
+              w = Math.round(w * s); h = Math.round(h * s);
+            }
+            const c = document.createElement('canvas');
+            c.width = w; c.height = h;
+            c.getContext('2d').drawImage(img, 0, 0, w, h);
+            resolve({ mimeType: 'image/jpeg', base64Data: c.toDataURL('image/jpeg', 0.80).split(',')[1] });
+          };
+          img.onerror = reject;
+          img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function showStatus(msg, type) {
+      const box = document.getElementById('statusBox');
+      box.className = 'status ' + type;
+      box.textContent = msg;
+    }
+
+    async function refreshUI() {
+      const queue = await dbOp('queue', 'readonly', s => s.getAll()) || [];
+      const bar = document.getElementById('syncBar');
+      if (queue.length > 0) {
+        bar.classList.add('show');
+        document.getElementById('syncText').textContent = 'Có ' + queue.length + ' phiếu lưu ngoại tuyến chờ đồng bộ';
+      } else {
+        bar.classList.remove('show');
+      }
+
+      const hist = await dbOp('history', 'readonly', s => s.getAll()) || [];
+      hist.sort((a, b) => b.ts - a.ts);
+      const card = document.getElementById('historyCard');
+      const list = document.getElementById('historyList');
+      if (hist.length > 0) {
+        card.style.display = 'block';
+        list.innerHTML = hist.slice(0, 8).map(h =>
+          '<div class="history-item"><span>' + h.time + ' • ' + h.label + ' (' + h.imgCount + ' ảnh)</span>' +
+          '<span class="' + (h.synced ? 'tag-ok' : 'tag-wait') + '">' + (h.synced ? h.recordId : 'Chờ sóng') + '</span></div>'
+        ).join('');
+      }
+    }
+
+    async function syncQueue() {
+      if (isSyncing || !navigator.onLine) return;
+      const items = await dbOp('queue', 'readonly', s => s.getAll()) || [];
+      if (items.length === 0) return;
+
+      isSyncing = true;
+      const syncBtn = document.getElementById('syncBtn');
+      syncBtn.disabled = true;
+      syncBtn.textContent = 'Đang đồng bộ...';
+
+      let okCount = 0;
+      for (const item of items) {
+        try {
+          const res = await postToAppsScript(item);
+          if (res && res.success) {
+            await dbOp('queue', 'readwrite', s => s.delete(item.clientUuid));
+            const h = await dbOp('history', 'readonly', s => s.get(item.clientUuid));
+            if (h) {
+              h.synced = true;
+              h.recordId = res.recordId || 'Đã gửi';
+              await dbOp('history', 'readwrite', s => s.put(h));
+            }
+            okCount++;
+          }
+        } catch (_) {
+          break;
+        }
+      }
+
+      isSyncing = false;
+      syncBtn.disabled = false;
+      syncBtn.textContent = 'Đồng bộ ngay';
+      await refreshUI();
+      if (okCount > 0) showStatus('Đã tự động đồng bộ ' + okCount + ' phiếu lên Google Sheets & Drive!', 'ok');
+    }
+
+    function updateNetworkUI() {
+      const badge = document.getElementById('netBadge');
+      if (navigator.onLine) {
+        badge.className = 'badge online';
+        badge.textContent = 'Có sóng — Đồng bộ ngay';
+        syncQueue();
+      } else {
+        badge.className = 'badge offline';
+        badge.textContent = 'Mất sóng — Lưu máy';
+      }
+    }
+
+    document.getElementById('obsForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = 'Đang xử lý ảnh & dữ liệu...';
+
+      try {
+        const files = Array.from(document.getElementById('photos').files).slice(0, MAX_FILES);
+        const images = await Promise.all(files.map(compressImage));
+        const now = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        const uuid = Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+        const payload = {
+          clientUuid: uuid,
+          observedDate: now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()),
+          observedTime: pad(now.getHours()) + ':' + pad(now.getMinutes()),
+          unit: document.getElementById('unit').value,
+          reporterName: document.getElementById('reporterName').value.trim(),
+          contact: document.getElementById('contact').value.trim(),
+          group: document.getElementById('group').value,
+          speciesLookup: document.getElementById('speciesSearch').value.trim(),
+          method: document.getElementById('method').value,
+          quantity: document.getElementById('quantity').value,
+          countUnit: document.getElementById('countUnit').value,
+          lat: document.getElementById('lat').value.trim(),
+          lon: document.getElementById('lon').value.trim(),
+          locationNote: document.getElementById('locationNote').value.trim(),
+          habitat: document.getElementById('habitat').value,
+          behavior: document.getElementById('behavior').value,
+          notes: document.getElementById('notes').value.trim(),
+          images: images
+        };
+
+        const histEntry = {
+          clientUuid: uuid,
+          ts: Date.now(),
+          time: payload.observedTime,
+          label: payload.speciesLookup ? payload.speciesLookup.split(' (')[0] : payload.group,
+          imgCount: images.length,
+          synced: false,
+          recordId: ''
+        };
+
+        if (navigator.onLine) {
+          try {
+            const res = await postToAppsScript(payload);
+            if (res && res.success) {
+              histEntry.synced = true;
+              histEntry.recordId = res.recordId || 'Đã gửi';
+              await dbOp('history', 'readwrite', s => s.put(histEntry));
+              showStatus('Đã đồng bộ ngay! Mã bản ghi: ' + res.recordId + ' (' + images.length + ' ảnh).', 'ok');
+              resetEntryFields();
+            } else {
+              throw new Error(res ? res.error : 'Lỗi máy chủ');
+            }
+          } catch (_) {
+            await dbOp('queue', 'readwrite', s => s.put(payload));
+            await dbOp('history', 'readwrite', s => s.put(histEntry));
+            showStatus('Mạng yếu/gián đoạn — đã lưu tạm an toàn trên máy (' + images.length + ' ảnh), sẽ tự đồng bộ khi có sóng.', 'warn');
+            resetEntryFields();
+          }
+        } else {
+          await dbOp('queue', 'readwrite', s => s.put(payload));
+          await dbOp('history', 'readwrite', s => s.put(histEntry));
+          showStatus('Đang mất sóng — đã lưu tạm phiếu (' + images.length + ' ảnh) vào bộ nhớ máy. Khi có sóng app sẽ tự đồng bộ!', 'warn');
+          resetEntryFields();
+        }
+        await refreshUI();
+      } catch (err) {
+        showStatus('Lỗi xử lý: ' + err.message, 'err');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Lưu & Gửi ghi nhận';
+      }
+    });
+
+    function resetEntryFields() {
+      document.getElementById('speciesSearch').value = '';
+      document.getElementById('quantity').value = 1;
+      document.getElementById('locationNote').value = '';
+      document.getElementById('notes').value = '';
+      document.getElementById('photos').value = '';
+      document.getElementById('preview').innerHTML = '';
+    }
+
+    window.addEventListener('online', updateNetworkUI);
+    window.addEventListener('offline', updateNetworkUI);
+
+    (async function init() {
+      loadProfile();
+      await openDB();
+      await refreshUI();
+      updateNetworkUI();
+      await loadCatalog();
+    })();
+  </script>
+</body>
+</html>

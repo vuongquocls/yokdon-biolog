@@ -1,0 +1,19 @@
+{
+  "name": "Yok Đôn BioLog — Giám sát Đa dạng sinh học",
+  "short_name": "Yok Đôn BioLog",
+  "description": "Ứng dụng ghi nhận Chim, Thú, Thực vật, Bò sát, Cá tại Vườn quốc gia Yok Đôn (Online & Offline).",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f3f6f2",
+  "theme_color": "#2d5a27",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

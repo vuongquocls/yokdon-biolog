@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#2d5a27"/>
+  <circle cx="256" cy="220" r="110" fill="#dcfce7" opacity="0.18"/>
+  <path d="M150 320 C180 210, 260 150, 365 155 C340 245, 275 310, 175 335 Z" fill="#86efac"/>
+  <path d="M165 335 C220 275, 285 215, 350 168" stroke="#166534" stroke-width="14" stroke-linecap="round" fill="none"/>
+  <text x="256" y="435" font-family="Arial, sans-serif" font-size="58" font-weight="700" fill="#ffffff" text-anchor="middle">YOK ĐÔN</text>
+</svg>
