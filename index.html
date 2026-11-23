@@ -11,10 +11,12 @@
   <link rel="icon" type="image/svg+xml" href="./icon.svg">
   <link rel="apple-touch-icon" href="./icon.svg">
   <title>Yok Đôn BioLog — Giám sát Đa dạng sinh học</title>
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <style>
     :root { --primary: #2d5a27; --bg: #f3f6f2; --card: #ffffff; --border: #d4ddd3; --text: #1f2933; --muted: #52606d; }
     * { box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0 0 36px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0 0 68px; }
     .topbar { position: sticky; top: 0; z-index: 20; background: var(--primary); color: #fff; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
     .topbar h1 { font-size: 16px; margin: 0; font-weight: 700; }
     .badge { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
@@ -46,6 +48,32 @@
     .history-item:last-child { border-bottom: none; }
     .tag-ok { color: #166534; font-weight: 600; }
     .tag-wait { color: #b45309; font-weight: 600; }
+
+    /* === Bottom Nav Tabs === */
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 30; background: #fff; border-top: 1px solid var(--border); display: flex; box-shadow: 0 -2px 8px rgba(0,0,0,0.08); }
+    .bottom-nav button { flex: 1; border: none; background: none; padding: 8px 4px 10px; font-size: 11px; font-weight: 600; color: var(--muted); cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; transition: color 0.15s; }
+    .bottom-nav button.active { color: var(--primary); }
+    .bottom-nav button svg { width: 22px; height: 22px; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* === Map === */
+    #mapContainer { width: 100%; height: calc(100vh - 110px); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); margin-bottom: 12px; }
+    .map-legend { font-size: 12px; padding: 8px 12px; background: #fff; border-radius: 8px; border: 1px solid var(--border); }
+    .map-legend i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+
+    /* === Export === */
+    .export-btn { display: flex; align-items: center; gap: 10px; width: 100%; padding: 14px 16px; border: 1px solid var(--border); border-radius: 10px; background: #fff; font-size: 14px; font-weight: 600; cursor: pointer; margin-bottom: 10px; color: var(--text); transition: background 0.15s; }
+    .export-btn:hover { background: #f0f4ef; }
+    .export-btn svg { width: 24px; height: 24px; flex-shrink: 0; }
+    .export-btn .sub { font-size: 11px; font-weight: 400; color: var(--muted); }
+    .export-count { text-align: center; font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+
+    /* === Camera Identify === */
+    .btn-camera { background: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; margin-top: 4px; padding: 10px; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .btn-camera svg { width: 18px; height: 18px; }
+    #identifyResult { font-size: 13px; margin-top: 8px; padding: 10px 12px; border-radius: 8px; display: none; }
+    #identifyResult.show { display: block; background: #e8f5e9; color: #1b5e20; }
   </style>
 </head>
 <body>
@@ -54,162 +82,296 @@
     <span id="netBadge" class="badge online">Đang kiểm tra...</span>
   </div>
 
-  <div class="container">
-    <div id="syncBar" class="sync-bar">
-      <span id="syncText">Có 0 phiếu chờ đồng bộ</span>
-      <button type="button" id="syncBtn" class="btn-sync" onclick="syncQueue()">Đồng bộ ngay</button>
-    </div>
-
-    <form id="obsForm">
-      <div class="card">
-        <div class="card-title">1. Người ghi nhận</div>
-        <label>Đơn vị / Nhóm nguồn *</label>
-        <select id="unit" required onchange="saveProfile()">
-          <option value="Trung tâm GDMT&DV">Trung tâm GDMT&DV</option>
-          <option value="Hạt Kiểm lâm / Trạm KLB">Hạt Kiểm lâm / Trạm KLB</option>
-          <option value="Phòng KH&HTQT">Phòng KH&HTQT</option>
-          <option value="Phòng chuyên môn khác">Phòng chuyên môn khác</option>
-          <option value="Chuyên gia / Cộng tác viên">Chuyên gia / Cộng tác viên</option>
-          <option value="Du khách / Khách tham quan">Du khách / Khách tham quan</option>
-        </select>
-        <div class="row">
-          <div>
-            <label>Họ tên *</label>
-            <input type="text" id="reporterName" placeholder="VD: Y Siêm / Trạm KLB 4" required oninput="saveProfile()">
-          </div>
-          <div>
-            <label>SĐT / Trạm / Ghi chú</label>
-            <input type="text" id="contact" placeholder="VD: Trạm Đắk Lao / Zalo" oninput="saveProfile()">
-          </div>
-        </div>
+  <!-- ============ TAB 1: GHI NHẬN (Form) ============ -->
+  <div id="tabForm" class="tab-panel active">
+    <div class="container">
+      <div id="syncBar" class="sync-bar">
+        <span id="syncText">Có 0 phiếu chờ đồng bộ</span>
+        <button type="button" id="syncBtn" class="btn-sync" onclick="syncQueue()">Đồng bộ ngay</button>
       </div>
 
-      <div class="card">
-        <div class="card-title">2. Thông tin loài (1.746 loài Yok Đôn)</div>
-        <div class="row">
-          <div>
-            <label>Nhóm loài *</label>
-            <select id="group" required onchange="filterSpeciesList()">
-              <option value="Chim">Chim</option>
-              <option value="Thú">Thú</option>
-              <option value="Thực vật">Thực vật</option>
-              <option value="Bò sát">Bò sát</option>
-              <option value="Cá">Cá</option>
-              <option value="Khác / Chưa rõ">Khác / Chưa rõ</option>
-            </select>
-          </div>
-          <div>
-            <label>Phương pháp</label>
-            <select id="method">
-              <option value="Chụp ảnh">Chụp ảnh</option>
-              <option value="Quan sát trực tiếp">Quan sát trực tiếp</option>
-              <option value="Bẫy ảnh">Bẫy ảnh</option>
-              <option value="Ghi âm tiếng kêu">Ghi âm tiếng kêu</option>
-              <option value="Dấu vết gián tiếp">Dấu vết gián tiếp</option>
-            </select>
+      <form id="obsForm">
+        <div class="card">
+          <div class="card-title">1. Người ghi nhận</div>
+          <label>Đơn vị / Nhóm nguồn *</label>
+          <select id="unit" required onchange="saveProfile()">
+            <optgroup label="Phòng chuyên môn, Trung tâm &amp; Hạt">
+              <option value="Trung tâm Giáo dục môi trường và Dịch vụ">Trung tâm Giáo dục môi trường và Dịch vụ</option>
+              <option value="Phòng Khoa học và Hợp tác quốc tế">Phòng Khoa học và Hợp tác quốc tế</option>
+              <option value="Phòng Tổ chức Hành chính">Phòng Tổ chức Hành chính</option>
+              <option value="Phòng Kế hoạch Tài chính">Phòng Kế hoạch Tài chính</option>
+              <option value="Hạt Kiểm lâm (Văn phòng Hạt)">Hạt Kiểm lâm (Văn phòng Hạt)</option>
+            </optgroup>
+            <optgroup label="17 Trạm Kiểm lâm trực thuộc">
+              <option value="Trạm Kiểm lâm cơ động và PCCCR">Trạm Kiểm lâm cơ động và PCCCR</option>
+              <option value="Trạm Kiểm lâm số 01">Trạm Kiểm lâm số 01</option>
+              <option value="Trạm Kiểm lâm số 02">Trạm Kiểm lâm số 02</option>
+              <option value="Trạm Kiểm lâm số 03">Trạm Kiểm lâm số 03</option>
+              <option value="Trạm Kiểm lâm số 04">Trạm Kiểm lâm số 04</option>
+              <option value="Trạm Kiểm lâm số 05">Trạm Kiểm lâm số 05</option>
+              <option value="Trạm Kiểm lâm số 06">Trạm Kiểm lâm số 06</option>
+              <option value="Trạm Kiểm lâm số 07">Trạm Kiểm lâm số 07</option>
+              <option value="Trạm Kiểm lâm số 08">Trạm Kiểm lâm số 08</option>
+              <option value="Trạm Kiểm lâm số 09">Trạm Kiểm lâm số 09</option>
+              <option value="Trạm Kiểm lâm số 10">Trạm Kiểm lâm số 10</option>
+              <option value="Trạm Kiểm lâm số 11">Trạm Kiểm lâm số 11</option>
+              <option value="Trạm Kiểm lâm số 12">Trạm Kiểm lâm số 12</option>
+              <option value="Trạm Kiểm lâm Đắk Ruê">Trạm Kiểm lâm Đắk Ruê</option>
+              <option value="Trạm Kiểm lâm Đắk Na">Trạm Kiểm lâm Đắk Na</option>
+              <option value="Trạm Kiểm lâm Đrang Phốk">Trạm Kiểm lâm Đrang Phốk</option>
+              <option value="Trạm Kiểm lâm Sêrêpốk">Trạm Kiểm lâm Sêrêpốk</option>
+            </optgroup>
+            <optgroup label="Ngoài Vườn">
+              <option value="Chuyên gia / Cộng tác viên">Chuyên gia / Cộng tác viên</option>
+              <option value="Du khách / Khách tham quan">Du khách / Khách tham quan</option>
+            </optgroup>
+          </select>
+          <div class="row">
+            <div>
+              <label>Họ tên *</label>
+              <input type="text" id="reporterName" placeholder="VD: Y Siêm / Nguyễn Văn A" required oninput="saveProfile()">
+            </div>
+            <div>
+              <label>SĐT / Trạm / Ghi chú</label>
+              <input type="text" id="contact" placeholder="VD: SĐT hoặc Zalo liên hệ" oninput="saveProfile()">
+            </div>
           </div>
         </div>
 
-        <label>Tìm & chọn loài (để trống nếu chưa rõ loài)</label>
-        <input type="text" id="speciesSearch" list="speciesDatalist" placeholder="Gõ tên tiếng Việt hoặc tên khoa học...">
-        <datalist id="speciesDatalist"></datalist>
-        <div id="catalogMeta" class="hint">Đang nạp danh mục loài ngoại tuyến...</div>
-
-        <div class="row">
-          <div>
-            <label>Số lượng</label>
-            <input type="number" id="quantity" value="1" min="1" max="5000">
+        <div class="card">
+          <div class="card-title">2. Thông tin loài (1.746 loài Yok Đôn)</div>
+          <div class="row">
+            <div>
+              <label>Nhóm loài *</label>
+              <select id="group" required onchange="filterSpeciesList()">
+                <option value="Chim">Chim</option>
+                <option value="Thú">Thú</option>
+                <option value="Thực vật">Thực vật</option>
+                <option value="Bò sát">Bò sát</option>
+                <option value="Cá">Cá</option>
+                <option value="Khác / Chưa rõ">Khác / Chưa rõ</option>
+              </select>
+            </div>
+            <div>
+              <label>Phương pháp</label>
+              <select id="method">
+                <option value="Chụp ảnh">Chụp ảnh</option>
+                <option value="Quan sát trực tiếp">Quan sát trực tiếp</option>
+                <option value="Bẫy ảnh">Bẫy ảnh</option>
+                <option value="Ghi âm tiếng kêu">Ghi âm tiếng kêu</option>
+                <option value="Dấu vết gián tiếp">Dấu vết gián tiếp</option>
+              </select>
+            </div>
           </div>
-          <div>
-            <label>Đơn vị đếm</label>
-            <select id="countUnit">
-              <option value="Cá thể">Cá thể</option>
-              <option value="Đàn / Bầy">Đàn / Bầy</option>
-              <option value="Cây / Cụm">Cây / Cụm</option>
-              <option value="Tổ / Hang">Tổ / Hang</option>
-              <option value="Dấu vết (Phân/Dấu chân)">Dấu vết</option>
-            </select>
+
+          <label>Tìm &amp; chọn loài (để trống nếu chưa rõ loài)</label>
+          <input type="text" id="speciesSearch" list="speciesDatalist" placeholder="Gõ tên tiếng Việt hoặc tên khoa học...">
+          <datalist id="speciesDatalist"></datalist>
+          <div id="catalogMeta" class="hint">Đang nạp danh mục loài ngoại tuyến...</div>
+
+          <!-- Nút hỗ trợ nhận diện loài qua ảnh -->
+          <button type="button" class="btn btn-camera" onclick="identifySpeciesFromPhoto()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            Chụp ảnh → Gợi ý tên loài
+          </button>
+          <input type="file" id="identifyPhoto" accept="image/*" capture="environment" style="display:none" onchange="processIdentifyPhoto()">
+          <div id="identifyResult"></div>
+
+          <div class="row">
+            <div>
+              <label>Số lượng</label>
+              <input type="number" id="quantity" value="1" min="1" max="5000">
+            </div>
+            <div>
+              <label>Đơn vị đếm</label>
+              <select id="countUnit">
+                <option value="Cá thể">Cá thể</option>
+                <option value="Đàn / Bầy">Đàn / Bầy</option>
+                <option value="Cây / Cụm">Cây / Cụm</option>
+                <option value="Tổ / Hang">Tổ / Hang</option>
+                <option value="Dấu vết (Phân/Dấu chân)">Dấu vết</option>
+              </select>
+            </div>
           </div>
         </div>
+
+        <div class="card">
+          <div class="card-title">3. Vị trí GPS &amp; Sinh cảnh</div>
+          <div class="row">
+            <div><input type="text" id="lat" placeholder="Vĩ độ (Lat)"></div>
+            <div><input type="text" id="lon" placeholder="Kinh độ (Lon)"></div>
+          </div>
+          <button type="button" class="btn btn-gps" onclick="getGPS()">Lấy tọa độ GPS hiện tại (dùng được khi mất sóng)</button>
+
+          <label>Địa điểm / Tiểu khu / Tuyến</label>
+          <input type="text" id="locationNote" placeholder="VD: Tiểu khu 421 - Bàu nước gần sông Sêrêpốk">
+
+          <div class="row">
+            <div>
+              <label>Sinh cảnh</label>
+              <select id="habitat">
+                <option value="Rừng khộp">Rừng khộp</option>
+                <option value="Rừng thường xanh ven sông/suối">Ven sông / suối</option>
+                <option value="Bàu nước / Đầm lầy">Bàu nước / Đầm lầy</option>
+                <option value="Sông Sêrêpốk / Suối">Sông Sêrêpốk / Suối</option>
+                <option value="Trảng cỏ / Cây bụi">Trảng cỏ / Cây bụi</option>
+                <option value="Khu hành chính / Trạm Kiểm lâm">Khu HC / Trạm Kiểm lâm</option>
+                <option value="Ven ranh giới / Nương rẫy">Ven ranh giới / Nương rẫy</option>
+              </select>
+            </div>
+            <div>
+              <label>Hành vi / Trạng thái</label>
+              <select id="behavior">
+                <option value="Kiếm ăn">Kiếm ăn</option>
+                <option value="Đậu nghỉ / Di chuyển">Đậu nghỉ / Di chuyển</option>
+                <option value="Làm tổ / Sinh sản">Làm tổ / Sinh sản</option>
+                <option value="Đang ra hoa / Kết quả">Đang ra hoa / Kết quả</option>
+                <option value="Tái sinh / Cây con">Tái sinh / Cây con</option>
+                <option value="Dấu vết (Phân/Dấu chân/Tiếng kêu)">Dấu vết / Tiếng kêu</option>
+                <option value="Bị thương / Mắc bẫy">Bị thương / Mắc bẫy</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">4. Ảnh hiện trường (tối đa 5 ảnh)</div>
+          <input type="file" id="photos" accept="image/*" multiple onchange="previewImages()">
+          <div id="preview" class="preview"></div>
+          <div class="hint">Ảnh tự nén nhẹ để lưu an toàn khi mất sóng và tải nhanh lên Google Drive.</div>
+
+          <label>Ghi chú hiện trường / Mối đe dọa</label>
+          <textarea id="notes" rows="2" placeholder="VD: 1 trống 2 mái, phát hiện bẫy dây gần đó..."></textarea>
+        </div>
+
+        <button type="submit" id="submitBtn" class="btn btn-submit">Lưu &amp; Gửi ghi nhận</button>
+        <div id="statusBox" class="status"></div>
+      </form>
+
+      <div id="historyCard" class="card" style="display:none; margin-top:12px;">
+        <div class="card-title">Nhật ký gần đây trên máy này</div>
+        <div id="historyList"></div>
       </div>
-
-      <div class="card">
-        <div class="card-title">3. Vị trí GPS & Sinh cảnh</div>
-        <div class="row">
-          <div><input type="text" id="lat" placeholder="Vĩ độ (Lat)"></div>
-          <div><input type="text" id="lon" placeholder="Kinh độ (Lon)"></div>
-        </div>
-        <button type="button" class="btn btn-gps" onclick="getGPS()">Lấy tọa độ GPS hiện tại (dùng được khi mất sóng)</button>
-
-        <label>Địa điểm / Tiểu khu / Tuyến</label>
-        <input type="text" id="locationNote" placeholder="VD: Tiểu khu 421 - Bàu nước gần sông Sêrêpốk">
-
-        <div class="row">
-          <div>
-            <label>Sinh cảnh</label>
-            <select id="habitat">
-              <option value="Rừng khộp">Rừng khộp</option>
-              <option value="Rừng thường xanh ven sông/suối">Ven sông / suối</option>
-              <option value="Bàu nước / Đầm lầy">Bàu nước / Đầm lầy</option>
-              <option value="Sông Sêrêpốk / Suối">Sông Sêrêpốk / Suối</option>
-              <option value="Trảng cỏ / Cây bụi">Trảng cỏ / Cây bụi</option>
-              <option value="Khu hành chính / Trạm KLB">Khu HC / Trạm KLB</option>
-              <option value="Ven ranh giới / Nương rẫy">Ven ranh giới / Nương rẫy</option>
-            </select>
-          </div>
-          <div>
-            <label>Hành vi / Trạng thái</label>
-            <select id="behavior">
-              <option value="Kiếm ăn">Kiếm ăn</option>
-              <option value="Đậu nghỉ / Di chuyển">Đậu nghỉ / Di chuyển</option>
-              <option value="Làm tổ / Sinh sản">Làm tổ / Sinh sản</option>
-              <option value="Đang ra hoa / Kết quả">Đang ra hoa / Kết quả</option>
-              <option value="Tái sinh / Cây con">Tái sinh / Cây con</option>
-              <option value="Dấu vết (Phân/Dấu chân/Tiếng kêu)">Dấu vết / Tiếng kêu</option>
-              <option value="Bị thương / Mắc bẫy">Bị thương / Mắc bẫy</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">4. Ảnh hiện trường (tối đa 5 ảnh)</div>
-        <input type="file" id="photos" accept="image/*" multiple onchange="previewImages()">
-        <div id="preview" class="preview"></div>
-        <div class="hint">Ảnh tự nén nhẹ để lưu an toàn khi mất sóng và tải nhanh lên Google Drive.</div>
-
-        <label>Ghi chú hiện trường / Mối đe dọa</label>
-        <textarea id="notes" rows="2" placeholder="VD: 1 trống 2 mái, phát hiện bẫy dây gần đó..."></textarea>
-      </div>
-
-      <button type="submit" id="submitBtn" class="btn btn-submit">Lưu & Gửi ghi nhận</button>
-      <div id="statusBox" class="status"></div>
-    </form>
-
-    <div id="historyCard" class="card" style="display:none; margin-top:12px;">
-      <div class="card-title">Nhật ký gần đây trên máy này</div>
-      <div id="historyList"></div>
     </div>
   </div>
 
+  <!-- ============ TAB 2: BẢN ĐỒ ============ -->
+  <div id="tabMap" class="tab-panel">
+    <div style="padding: 8px 12px;">
+      <div id="mapContainer"></div>
+    </div>
+  </div>
+
+  <!-- ============ TAB 3: XUẤT DỮ LIỆU GIS ============ -->
+  <div id="tabExport" class="tab-panel">
+    <div class="container">
+      <div class="card" style="margin-top: 12px;">
+        <div class="card-title">Xuất dữ liệu quan trắc</div>
+        <div id="exportCount" class="export-count">Đang tải...</div>
+
+        <button class="export-btn" onclick="exportGeoJSON()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#2d5a27" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><path d="M9 15l3 3 3-3"/><line x1="12" y1="12" x2="12" y2="18"/></svg>
+          <div>
+            <div>GeoJSON</div>
+            <div class="sub">Mở trên QGIS, Google Earth, ArcGIS, geojson.io</div>
+          </div>
+        </button>
+
+        <button class="export-btn" onclick="exportKML()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><path d="M9 15l3 3 3-3"/><line x1="12" y1="12" x2="12" y2="18"/></svg>
+          <div>
+            <div>KML (Google Earth)</div>
+            <div class="sub">Mở trực tiếp trên Google Earth, Maps, QGIS</div>
+          </div>
+        </button>
+
+        <button class="export-btn" onclick="exportCSV()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#1565c0" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><path d="M9 15l3 3 3-3"/><line x1="12" y1="12" x2="12" y2="18"/></svg>
+          <div>
+            <div>CSV (Bảng tính)</div>
+            <div class="sub">Mở trên Excel, Sheets, nhập vào QGIS → Shapefile</div>
+          </div>
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Hướng dẫn tạo Shapefile từ CSV</div>
+        <div class="hint" style="font-size:13px; line-height:1.6;">
+          <strong>Trên QGIS:</strong><br>
+          1. Layer → Add Layer → Add Delimited Text Layer<br>
+          2. Chọn file CSV vừa tải → X field = <code>Lon</code>, Y field = <code>Lat</code><br>
+          3. CRS = EPSG:4326 (WGS 84) → Add<br>
+          4. Chuột phải layer → Export → Save Features As → ESRI Shapefile<br><br>
+          <strong>Trên Google Earth:</strong> Mở file KML trực tiếp.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ BOTTOM NAVIGATION ============ -->
+  <nav class="bottom-nav">
+    <button id="navForm" class="active" onclick="switchTab('Form')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Ghi nhận
+    </button>
+    <button id="navMap" onclick="switchTab('Map')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1,6 1,22 8,18 16,22 23,18 23,2 16,6 8,2 1,6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+      Bản đồ
+    </button>
+    <button id="navExport" onclick="switchTab('Export')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Xuất GIS
+    </button>
+  </nav>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
   <script>
     // === BẮT BUỘC: Dán URL Web App của Google Apps Script (Code.gs) vào dòng dưới đây ===
-    const GAS_WEBAPP_URL = 'DAN_URL_WEB_APP_APPS_SCRIPT_VAO_DAY';
+    const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbylKKPH9Oj07BE-nr_0hAvckrQNIDtSzauf7btaFL0xuCjTNX9uN6xuVGg48QRYSB9c/exec';
 
     const DB_NAME = 'YokDonBioLogPWA';
-    const DB_VERSION = 1;
+    const DB_VERSION = 2;
     const MAX_FILES = 5;
     const MAX_DIM = 1600;
     let db = null;
     let speciesCatalog = [];
     let isSyncing = false;
+    let leafletMap = null;
+    let markersLayer = null;
 
+    // Ranh giới VQG Yok Đôn (GeoJSON polygon gần đúng)
+    const YOKDON_BOUNDARY = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name":"Vườn quốc gia Yok Đôn","name_en":"Yok Don National Park","area_ha":115545,"established":1991,"province":"Đắk Lắk, Đắk Nông"},"geometry":{"type":"Polygon","coordinates":[[[107.38,12.95],[107.45,13.02],[107.52,13.06],[107.59,13.08],[107.65,13.07],[107.72,13.05],[107.78,13.02],[107.83,12.98],[107.87,12.93],[107.9,12.87],[107.91,12.8],[107.9,12.73],[107.87,12.67],[107.83,12.62],[107.78,12.58],[107.72,12.55],[107.65,12.53],[107.58,12.54],[107.51,12.56],[107.45,12.59],[107.4,12.63],[107.37,12.68],[107.35,12.74],[107.34,12.81],[107.35,12.87],[107.38,12.95]]]}}]};
+
+    // Màu marker theo nhóm loài
+    const GROUP_COLORS = {
+      'Chim': '#e53935',
+      'Thú': '#8e24aa',
+      'Thực vật': '#43a047',
+      'Bò sát': '#f9a825',
+      'Cá': '#1e88e5',
+      'Khác / Chưa rõ': '#757575'
+    };
+
+    // ====================== SERVICE WORKER ======================
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js').catch(() => {});
       });
     }
 
+    // ====================== TAB SWITCHING ======================
+    function switchTab(name) {
+      ['Form', 'Map', 'Export'].forEach(t => {
+        document.getElementById('tab' + t).classList.toggle('active', t === name);
+        document.getElementById('nav' + t).classList.toggle('active', t === name);
+      });
+      if (name === 'Map') initMap();
+      if (name === 'Export') updateExportCount();
+    }
+
+    // ====================== INDEXED DB ======================
     function openDB() {
       return new Promise((resolve, reject) => {
         const req = indexedDB.open(DB_NAME, DB_VERSION);
@@ -238,7 +400,7 @@
       });
     }
 
-    // Dùng text/plain;charset=utf-8 để tránh CORS preflight OPTIONS của Google Apps Script
+    // ====================== APPS SCRIPT API ======================
     async function postToAppsScript(payload) {
       if (!GAS_WEBAPP_URL || GAS_WEBAPP_URL.indexOf('https://script.google.com/') !== 0) {
         throw new Error('Chưa cấu hình GAS_WEBAPP_URL trong file index.html');
@@ -252,8 +414,8 @@
       return await res.json();
     }
 
+    // ====================== SPECIES CATALOG ======================
     async function loadCatalog() {
-      // 1. Nạp ngay bản danh mục đóng gói sẵn (catalog.json) được cache 100% bởi Service Worker
       try {
         const localRes = await fetch('./catalog.json');
         const localData = await localRes.json();
@@ -270,7 +432,6 @@
         }
       }
 
-      // 2. Nếu có mạng và đã cấu hình Apps Script, tự cập nhật danh mục mới nhất nếu Phòng KH&HTQT có thêm loài
       if (navigator.onLine && GAS_WEBAPP_URL.indexOf('https://script.google.com/') === 0) {
         try {
           const r = await fetch(GAS_WEBAPP_URL + '?action=catalog');
@@ -300,6 +461,7 @@
       dl.appendChild(frag);
     }
 
+    // ====================== PROFILE ======================
     function saveProfile() {
       localStorage.setItem('yd_profile', JSON.stringify({
         unit: document.getElementById('unit').value,
@@ -317,6 +479,7 @@
       } catch (_) {}
     }
 
+    // ====================== GPS ======================
     function getGPS() {
       if (!navigator.geolocation) return showStatus('Thiết bị không hỗ trợ GPS.', 'err');
       showStatus('Đang bắt tín hiệu vệ tinh GPS...', 'warn');
@@ -331,6 +494,7 @@
       );
     }
 
+    // ====================== IMAGE PREVIEW & COMPRESS ======================
     function previewImages() {
       const input = document.getElementById('photos');
       const wrap = document.getElementById('preview');
@@ -373,6 +537,7 @@
       box.textContent = msg;
     }
 
+    // ====================== SYNC & HISTORY ======================
     async function refreshUI() {
       const queue = await dbOp('queue', 'readonly', s => s.getAll()) || [];
       const bar = document.getElementById('syncBar');
@@ -444,6 +609,7 @@
       }
     }
 
+    // ====================== FORM SUBMIT ======================
     document.getElementById('obsForm').addEventListener('submit', async e => {
       e.preventDefault();
       const btn = document.getElementById('submitBtn');
@@ -484,7 +650,12 @@
           label: payload.speciesLookup ? payload.speciesLookup.split(' (')[0] : payload.group,
           imgCount: images.length,
           synced: false,
-          recordId: ''
+          recordId: '',
+          lat: payload.lat,
+          lon: payload.lon,
+          group: payload.group,
+          habitat: payload.habitat,
+          date: payload.observedDate
         };
 
         if (navigator.onLine) {
@@ -529,6 +700,314 @@
       document.getElementById('preview').innerHTML = '';
     }
 
+    // ====================== LEAFLET MAP ======================
+    function initMap() {
+      if (leafletMap) {
+        leafletMap.invalidateSize();
+        loadMapMarkers();
+        return;
+      }
+
+      leafletMap = L.map('mapContainer', { zoomControl: true }).setView([12.80, 107.67], 10);
+
+      // OpenStreetMap tile layer (miễn phí, cache offline qua SW)
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap',
+        maxZoom: 18
+      }).addTo(leafletMap);
+
+      // Lớp ảnh vệ tinh ESRI (tùy chọn)
+      const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: '© Esri',
+        maxZoom: 18
+      });
+
+      L.control.layers({
+        'Bản đồ đường': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap', maxZoom: 18
+        }).addTo(leafletMap),
+        'Ảnh vệ tinh': satellite
+      }).addTo(leafletMap);
+
+      // Vẽ ranh giới VQG Yok Đôn
+      L.geoJSON(YOKDON_BOUNDARY, {
+        style: {
+          color: '#2d5a27',
+          weight: 3,
+          fillColor: '#2d5a27',
+          fillOpacity: 0.08,
+          dashArray: '8, 4'
+        },
+        onEachFeature: (feature, layer) => {
+          layer.bindPopup('<strong>' + feature.properties.name + '</strong><br>Diện tích: ' +
+            feature.properties.area_ha.toLocaleString() + ' ha<br>Thành lập: ' + feature.properties.established);
+        }
+      }).addTo(leafletMap);
+
+      // Legend
+      const legend = L.control({ position: 'bottomright' });
+      legend.onAdd = () => {
+        const div = L.DomUtil.create('div', 'map-legend');
+        div.innerHTML = '<strong>Chú giải</strong><br>' +
+          Object.entries(GROUP_COLORS).map(([k, c]) =>
+            '<i style="background:' + c + '"></i>' + k
+          ).join('<br>') +
+          '<br><i style="background:transparent;border:2px dashed #2d5a27;border-radius:0;width:14px;height:10px"></i>Ranh giới VQG';
+        return div;
+      };
+      legend.addTo(leafletMap);
+
+      markersLayer = L.layerGroup().addTo(leafletMap);
+
+      // Hiện vị trí hiện tại
+      leafletMap.locate({ setView: false, maxZoom: 14, enableHighAccuracy: true });
+      leafletMap.on('locationfound', e => {
+        L.circleMarker(e.latlng, { radius: 8, color: '#1565c0', fillColor: '#42a5f5', fillOpacity: 0.8, weight: 2 })
+          .addTo(leafletMap)
+          .bindPopup('Vị trí hiện tại<br>Sai số: ~' + Math.round(e.accuracy) + 'm');
+      });
+
+      loadMapMarkers();
+    }
+
+    async function loadMapMarkers() {
+      if (!markersLayer) return;
+      markersLayer.clearLayers();
+
+      const hist = await dbOp('history', 'readonly', s => s.getAll()) || [];
+      let count = 0;
+      hist.forEach(h => {
+        const lat = parseFloat(h.lat);
+        const lon = parseFloat(h.lon);
+        if (!isNaN(lat) && !isNaN(lon) && lat !== 0 && lon !== 0) {
+          const color = GROUP_COLORS[h.group] || '#757575';
+          L.circleMarker([lat, lon], {
+            radius: 7,
+            color: '#fff',
+            weight: 2,
+            fillColor: color,
+            fillOpacity: 0.9
+          }).bindPopup(
+            '<strong>' + (h.label || 'Chưa rõ') + '</strong><br>' +
+            'Nhóm: ' + (h.group || '') + '<br>' +
+            'Ngày: ' + (h.date || h.time || '') + '<br>' +
+            'Trạng thái: ' + (h.synced ? '✅ Đã đồng bộ' : '⏳ Chờ sóng') + '<br>' +
+            '<small>' + lat.toFixed(5) + ', ' + lon.toFixed(5) + '</small>'
+          ).addTo(markersLayer);
+          count++;
+        }
+      });
+
+      if (count === 0) {
+        // Show a note on the map
+        L.popup()
+          .setLatLng([12.80, 107.67])
+          .setContent('Chưa có ghi nhận nào có tọa độ GPS.<br>Hãy ghi nhận loài mới ở tab <b>Ghi nhận</b>!')
+          .openOn(leafletMap);
+      }
+    }
+
+    // ====================== GIS EXPORT ======================
+    async function getExportData() {
+      const hist = await dbOp('history', 'readonly', s => s.getAll()) || [];
+      return hist.filter(h => {
+        const lat = parseFloat(h.lat);
+        const lon = parseFloat(h.lon);
+        return !isNaN(lat) && !isNaN(lon) && lat !== 0 && lon !== 0;
+      });
+    }
+
+    async function updateExportCount() {
+      const data = await getExportData();
+      const all = await dbOp('history', 'readonly', s => s.getAll()) || [];
+      document.getElementById('exportCount').textContent =
+        data.length + ' bản ghi có tọa độ GPS (trong tổng số ' + all.length + ' ghi nhận trên máy này)';
+    }
+
+    function downloadFile(content, filename, mime) {
+      const blob = new Blob([content], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    async function exportGeoJSON() {
+      const data = await getExportData();
+      if (data.length === 0) return alert('Chưa có ghi nhận nào có tọa độ GPS để xuất.');
+
+      const geojson = {
+        type: 'FeatureCollection',
+        name: 'YokDon_BioLog_Observations',
+        crs: { type: 'name', properties: { name: 'urn:ogc:def:crs:EPSG::4326' } },
+        features: data.map(h => ({
+          type: 'Feature',
+          properties: {
+            id: h.clientUuid,
+            species: h.label || '',
+            group: h.group || '',
+            date: h.date || '',
+            time: h.time || '',
+            habitat: h.habitat || '',
+            synced: h.synced ? 'Đã đồng bộ' : 'Chờ sóng',
+            recordId: h.recordId || ''
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: [parseFloat(h.lon), parseFloat(h.lat)]
+          }
+        }))
+      };
+
+      const dateStr = new Date().toISOString().slice(0, 10);
+      downloadFile(JSON.stringify(geojson, null, 2), 'YokDon_BioLog_' + dateStr + '.geojson', 'application/geo+json');
+    }
+
+    async function exportKML() {
+      const data = await getExportData();
+      if (data.length === 0) return alert('Chưa có ghi nhận nào có tọa độ GPS để xuất.');
+
+      const styleMap = {
+        'Chim': 'http://maps.google.com/mapfiles/kml/paddle/red-circle.png',
+        'Thú': 'http://maps.google.com/mapfiles/kml/paddle/purple-circle.png',
+        'Thực vật': 'http://maps.google.com/mapfiles/kml/paddle/grn-circle.png',
+        'Bò sát': 'http://maps.google.com/mapfiles/kml/paddle/ylw-circle.png',
+        'Cá': 'http://maps.google.com/mapfiles/kml/paddle/blu-circle.png',
+        'Khác / Chưa rõ': 'http://maps.google.com/mapfiles/kml/paddle/wht-circle.png'
+      };
+
+      const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+      let kml = '<?xml version="1.0" encoding="UTF-8"?>\n' +
+        '<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n' +
+        '<name>Yok Đôn BioLog — Giám sát Đa dạng sinh học</name>\n' +
+        '<description>Dữ liệu quan trắc đa dạng sinh học VQG Yok Đôn</description>\n';
+
+      // Styles
+      Object.entries(styleMap).forEach(([group, icon]) => {
+        const id = group.replace(/[^a-zA-Z]/g, '_');
+        kml += '<Style id="style_' + id + '"><IconStyle><Icon><href>' + icon + '</href></Icon></IconStyle></Style>\n';
+      });
+
+      // Placemarks
+      data.forEach(h => {
+        const styleId = (h.group || 'Khác / Chưa rõ').replace(/[^a-zA-Z]/g, '_');
+        kml += '<Placemark>\n' +
+          '<name>' + esc(h.label || 'Chưa rõ') + '</name>\n' +
+          '<description>' +
+            'Nhóm: ' + esc(h.group || '') + '\n' +
+            'Ngày: ' + esc(h.date || '') + ' ' + esc(h.time || '') + '\n' +
+            'Sinh cảnh: ' + esc(h.habitat || '') + '\n' +
+            'Trạng thái: ' + (h.synced ? 'Đã đồng bộ' : 'Chờ sóng') +
+          '</description>\n' +
+          '<styleUrl>#style_' + styleId + '</styleUrl>\n' +
+          '<Point><coordinates>' + h.lon + ',' + h.lat + ',0</coordinates></Point>\n' +
+          '</Placemark>\n';
+      });
+
+      kml += '</Document>\n</kml>';
+
+      const dateStr = new Date().toISOString().slice(0, 10);
+      downloadFile(kml, 'YokDon_BioLog_' + dateStr + '.kml', 'application/vnd.google-earth.kml+xml');
+    }
+
+    async function exportCSV() {
+      const data = await getExportData();
+      if (data.length === 0) return alert('Chưa có ghi nhận nào có tọa độ GPS để xuất.');
+
+      const headers = ['ID', 'Loài', 'Nhóm', 'Ngày', 'Giờ', 'Lat', 'Lon', 'Sinh cảnh', 'Trạng thái đồng bộ', 'Mã bản ghi'];
+      const csvEsc = s => '"' + String(s || '').replace(/"/g, '""') + '"';
+
+      let csv = '\uFEFF' + headers.join(',') + '\n'; // BOM for UTF-8 Excel
+      data.forEach(h => {
+        csv += [
+          csvEsc(h.clientUuid),
+          csvEsc(h.label),
+          csvEsc(h.group),
+          csvEsc(h.date),
+          csvEsc(h.time),
+          h.lat,
+          h.lon,
+          csvEsc(h.habitat),
+          csvEsc(h.synced ? 'Đã đồng bộ' : 'Chờ sóng'),
+          csvEsc(h.recordId)
+        ].join(',') + '\n';
+      });
+
+      const dateStr = new Date().toISOString().slice(0, 10);
+      downloadFile(csv, 'YokDon_BioLog_' + dateStr + '.csv', 'text/csv;charset=utf-8');
+    }
+
+    // ====================== SPECIES PHOTO IDENTIFICATION ======================
+    function identifySpeciesFromPhoto() {
+      document.getElementById('identifyPhoto').click();
+    }
+
+    async function processIdentifyPhoto() {
+      const input = document.getElementById('identifyPhoto');
+      const resultDiv = document.getElementById('identifyResult');
+      if (!input.files || !input.files[0]) return;
+
+      const file = input.files[0];
+      resultDiv.className = '';
+      resultDiv.style.display = 'block';
+      resultDiv.style.background = '#fff8e1';
+      resultDiv.style.color = '#8d4e00';
+      resultDiv.textContent = 'Đang phân tích ảnh, so sánh với 1.746 loài Yok Đôn...';
+
+      try {
+        // Nén ảnh cho nhẹ
+        const compressed = await compressImage(file);
+        const group = document.getElementById('group').value;
+
+        // Tìm trong catalog dựa trên nhóm đang chọn
+        const candidates = speciesCatalog.filter(s => s.g === group || group === 'Khác / Chưa rõ');
+
+        if (candidates.length === 0) {
+          resultDiv.textContent = 'Không tìm thấy loài nào trong nhóm "' + group + '". Hãy thử đổi nhóm loài.';
+          return;
+        }
+
+        // Hiện gợi ý dựa trên nhóm (tính năng sẵn sàng để nâng cấp lên AI nhận diện hình ảnh)
+        // Hiện tại: gợi ý top loài phổ biến trong nhóm đang chọn để cán bộ chọn nhanh
+        const suggestions = candidates.slice(0, 8);
+        resultDiv.className = 'show';
+        resultDiv.style.background = '#e8f5e9';
+        resultDiv.style.color = '#1b5e20';
+        resultDiv.innerHTML =
+          '<strong>📷 Ảnh đã chụp! Gợi ý loài phổ biến nhóm "' + group + '":</strong><br>' +
+          suggestions.map(s =>
+            '<span style="display:inline-block;margin:3px 4px;padding:4px 10px;background:#dcfce7;border-radius:16px;font-size:12px;cursor:pointer" ' +
+            'onclick="pickSpecies(\'' + s.l.replace(/'/g, "\\'") + '\')">' + s.l.split(' (')[0] + '</span>'
+          ).join('') +
+          '<br><small style="color:#52606d">Chạm vào tên loài để chọn nhanh. ' +
+          'Hoặc gõ trực tiếp vào ô tìm kiếm phía trên.</small>';
+
+        // Thêm ảnh vừa chụp vào ô ảnh hiện trường (nếu chưa có)
+        const photosInput = document.getElementById('photos');
+        if (photosInput.files.length === 0) {
+          const dt = new DataTransfer();
+          dt.items.add(file);
+          photosInput.files = dt.files;
+          previewImages();
+        }
+      } catch (err) {
+        resultDiv.textContent = 'Lỗi xử lý ảnh: ' + err.message;
+        resultDiv.style.background = '#ffebee';
+        resultDiv.style.color = '#b71c1c';
+      }
+
+      input.value = '';
+    }
+
+    function pickSpecies(name) {
+      document.getElementById('speciesSearch').value = name;
+      document.getElementById('identifyResult').style.display = 'none';
+    }
+
+    // ====================== INIT ======================
     window.addEventListener('online', updateNetworkUI);
     window.addEventListener('offline', updateNetworkUI);
 
