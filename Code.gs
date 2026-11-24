@@ -1,7 +1,7 @@
 /**
  * Backend Ứng dụng Hợp nhất Thu thập Đa dạng sinh học (Online & Offline Sync)
  * Vườn quốc gia Yok Đôn - Phòng KH&HTQT
- * Hỗ trợ: Cán bộ các Phòng, Trạm KLB, Trung tâm GDMT&DV, Chuyên gia và Du khách.
+ * Hỗ trợ: Cán bộ các Phòng, 16 Trạm Kiểm lâm (QĐ 684) & Trạm KLCĐ-PCCCR, TT GDMT&DV, Chuyên gia và Du khách.
  */
 
 const CONFIG = {
@@ -10,6 +10,9 @@ const CONFIG = {
   SHEET_DANH_MUC: 'DanhMuc_Loai',
   ROOT_FOLDER_NAME: 'ANH_GIAM_SAT_DDSH_YOKDON',
   MAX_IMAGES: 5,
+  MAX_IMAGE_BYTES: 5 * 1024 * 1024, // Giới hạn 5MB / ảnh chống làm tràn quota
+  API_SECRET_TOKEN: '', // Nếu để rỗng: chế độ công khai thân thiện thực địa. Nếu điền chuỗi: bắt buộc app phải gửi kèm mã token
+  PUBLIC_DRIVE_SHARE: true, // true: Cho phép xem ảnh qua link; false: Chỉ tài khoản nội bộ VQG được phân quyền mới xem được
   LOCKED_SHEETS: ['Dashboard_TongHop', 'DanhMuc_Loai', 'DanhMuc_ThamChieu', 'HuongDan_QuyUoc'],
   LOCKED_FORMULA_RANGES: ['A2:A1000', 'C2:C1000', 'E2:E1000', 'J2:N1000', 'S2:S1000']
 };
@@ -26,11 +29,33 @@ function doGet(e) {
 }
 
 /**
- * API POST cho phép gọi từ bản PWA host ngoài (GitHub Pages / Cloudflare Pages)
+ * API POST tiếp nhận dữ liệu từ App (GitHub Pages / Cloudflare Pages / PWA)
+ * Bổ sung kiểm tra hợp lệ, chống spam & bảo mật token
  */
 function doPost(e) {
   try {
-    const payload = JSON.parse(e.postData.contents || '{}');
+    const raw = e && e.postData && e.postData.contents ? e.postData.contents : '{}';
+    const payload = JSON.parse(raw);
+
+    // 1. Kiểm tra Token bảo mật nếu máy chủ có thiết lập API_SECRET_TOKEN
+    if (CONFIG.API_SECRET_TOKEN && CONFIG.API_SECRET_TOKEN.trim() !== '') {
+      if (!payload.apiToken || payload.apiToken !== CONFIG.API_SECRET_TOKEN) {
+        return ContentService.createTextOutput(JSON.stringify({
+          success: false,
+          error: 'Mã xác thực bảo mật (API Secret Token) không chính xác.'
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+
+    // 2. Validate dữ liệu đầu vào cơ bản chống spam rác
+    const vError = validatePayload_(payload);
+    if (vError) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        error: 'Dữ liệu không hợp lệ: ' + vError
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     const result = submitObservation(payload);
     return ContentService.createTextOutput(JSON.stringify(result))
       .setMimeType(ContentService.MimeType.JSON);
@@ -38,6 +63,32 @@ function doPost(e) {
     return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.message }))
       .setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+/**
+ * Validate cấu trúc payload đầu vào
+ */
+function validatePayload_(p) {
+  if (!p || typeof p !== 'object') return 'Payload phải là đối tượng JSON.';
+  if (!p.reporterName || String(p.reporterName).trim().length === 0) {
+    return 'Thiếu họ tên người ghi nhận.';
+  }
+  if (p.quantity != null) {
+    const q = Number(p.quantity);
+    if (isNaN(q) || q < 1 || q > 10000) return 'Số lượng cá thể không hợp lý (1 - 10.000).';
+  }
+  if (p.lat != null && p.lat !== '') {
+    const lat = Number(p.lat);
+    if (isNaN(lat) || lat < -90 || lat > 90) return 'Tọa độ Vĩ độ (Latitude) không hợp lệ.';
+  }
+  if (p.lon != null && p.lon !== '') {
+    const lon = Number(p.lon);
+    if (isNaN(lon) || lon < -180 || lon > 180) return 'Tọa độ Kinh độ (Longitude) không hợp lệ.';
+  }
+  if (Array.isArray(p.images) && p.images.length > CONFIG.MAX_IMAGES) {
+    return 'Vượt quá số lượng ảnh cho phép (tối đa ' + CONFIG.MAX_IMAGES + ' ảnh).';
+  }
+  return null;
 }
 
 /**
@@ -79,19 +130,19 @@ function findFirstEmptyRow_(sheet, checkCol) {
 }
 
 /**
- * Chống ghi trùng khi mạng chập chờn đồng bộ lại (dựa trên clientUuid gắn cuối cột Ghi chú)
+ * Chống ghi trùng toàn diện trên toàn bộ cột Ghi chú (cột 26 / Z)
+ * Dùng TextFinder backend tối ưu tốc độ và không bị giới hạn 200 dòng cuối
  */
 function isDuplicateUuid_(sheet, clientUuid) {
-  if (!clientUuid) return false;
+  if (!clientUuid || typeof clientUuid !== 'string') return false;
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return false;
-  const startRow = Math.max(2, lastRow - 200);
-  const notes = sheet.getRange(startRow, 26, lastRow - startRow + 1, 1).getValues();
-  const tag = '[UUID:' + clientUuid + ']';
-  for (let i = notes.length - 1; i >= 0; i--) {
-    if (String(notes[i][0]).indexOf(tag) !== -1) return true;
-  }
-  return false;
+
+  const tag = '[UUID:' + clientUuid.trim() + ']';
+  const range = sheet.getRange(2, 26, lastRow - 1, 1);
+  const finder = range.createTextFinder(tag).matchEntireCell(false);
+  const match = finder.findNext();
+  return match !== null;
 }
 
 /**
@@ -108,6 +159,7 @@ function submitObservation(payload) {
     const imgSheet = ss.getSheetByName(CONFIG.SHEET_ANH);
     if (!logSheet) throw new Error('Không tìm thấy tab ' + CONFIG.SHEET_NHAT_KY);
 
+    // Chống ghi trùng lặp phiếu
     if (isDuplicateUuid_(logSheet, payload.clientUuid)) {
       return { success: true, duplicateSkipped: true, recordId: 'ĐÃ ĐỒNG BỘ TRƯỚC ĐÓ' };
     }
@@ -122,24 +174,38 @@ function submitObservation(payload) {
     const targetRow = findFirstEmptyRow_(logSheet, 2);
     const recordId = 'YD-' + yearStr + '-' + String(targetRow - 1).padStart(4, '0');
 
-    // Lưu tối đa 5 ảnh vào 1 thư mục con riêng trên Google Drive
+    // Lưu tối đa 5 ảnh vào thư mục con riêng trên Google Drive
     let folderUrl = '';
     const imageRows = [];
-    const files = Array.isArray(payload.images) ? payload.images.slice(0, CONFIG.MAX_IMAGES) : [];
+    const rawFiles = Array.isArray(payload.images) ? payload.images.slice(0, CONFIG.MAX_IMAGES) : [];
 
-    if (files.length > 0) {
+    if (rawFiles.length > 0) {
       const rootFolder = getOrCreateRootFolder_();
       const subFolder = rootFolder.createFolder(dateStamp + '_' + recordId);
-      subFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      
+      // Cấu hình chia sẻ an toàn theo CONFIG
+      if (CONFIG.PUBLIC_DRIVE_SHARE) {
+        subFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      }
       folderUrl = subFolder.getUrl();
 
       const syncStamp = Utilities.formatDate(now, tz, 'yyyy-MM-dd HH:mm');
-      files.forEach((img, idx) => {
+      rawFiles.forEach((img, idx) => {
+        if (!img || !img.base64Data) return;
+        
+        // Kiểm tra dung lượng base64 (~ 3/4 độ dài chuỗi)
+        const approxBytes = Math.round((img.base64Data.length * 3) / 4);
+        if (approxBytes > CONFIG.MAX_IMAGE_BYTES) {
+          Logger.log('Ảnh vượt quá dung lượng cho phép: ' + approxBytes + ' bytes');
+          return;
+        }
+
         const mime = img.mimeType || 'image/jpeg';
         const ext = mime.includes('png') ? 'png' : 'jpg';
         const decoded = Utilities.base64Decode(img.base64Data);
         const fileName = dateStamp + '_' + recordId + '_' + String(idx + 1).padStart(2, '0') + '.' + ext;
         const createdFile = subFolder.createFile(Utilities.newBlob(decoded, mime, fileName));
+        
         imageRows.push([
           recordId,
           idx + 1,
@@ -181,7 +247,7 @@ function submitObservation(payload) {
       payload.habitat || 'Rừng khộp',
       payload.behavior || 'Đậu nghỉ / Di chuyển',
       'Chờ xác minh',
-      payload.method || (files.length > 0 ? 'Chụp ảnh' : 'Quan sát trực tiếp'),
+      payload.method || (rawFiles.length > 0 ? 'Chụp ảnh' : 'Quan sát trực tiếp'),
       folderUrl,
       finalNotes.trim()
     ]]);
@@ -194,7 +260,7 @@ function submitObservation(payload) {
     return {
       success: true,
       recordId: recordId,
-      imageCount: files.length,
+      imageCount: imageRows.length,
       folderUrl: folderUrl
     };
   } catch (err) {
@@ -205,7 +271,7 @@ function submitObservation(payload) {
 }
 
 /**
- * Chạy 1 lần với quyền Chủ sở hữu để khóa cứng cột công thức (tới dòng 1000) & 4 tab hệ thống
+ * Khóa cứng cột công thức (tới dòng 1000) & các tab hệ thống
  */
 function khoaCacCotCongThucVaTabHeThong() {
   try {

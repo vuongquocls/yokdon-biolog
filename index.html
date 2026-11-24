@@ -140,7 +140,7 @@
               <option value="Phòng Kế hoạch Tài chính">Phòng Kế hoạch Tài chính</option>
               <option value="Hạt Kiểm lâm (Văn phòng Hạt)">Hạt Kiểm lâm (Văn phòng Hạt)</option>
             </optgroup>
-            <optgroup label="17 Trạm Kiểm lâm trực thuộc">
+            <optgroup label="16 Trạm Kiểm lâm (QĐ 684) &amp; Trạm KLCĐ-PCCCR">
               <option value="Trạm Kiểm lâm cơ động và PCCCR">Trạm Kiểm lâm cơ động và PCCCR</option>
               <option value="Trạm Kiểm lâm số 01">Trạm Kiểm lâm số 01</option>
               <option value="Trạm Kiểm lâm số 02">Trạm Kiểm lâm số 02</option>
@@ -177,7 +177,7 @@
         </div>
 
         <div class="card">
-          <div class="card-title">2. Thông tin loài (1.746 loài Yok Đôn)</div>
+          <div class="card-title">2. Thông tin loài (1.752 loài Yok Đôn)</div>
           <div class="row">
             <div>
               <label>Nhóm loài *</label>
@@ -207,10 +207,10 @@
           <datalist id="speciesDatalist"></datalist>
           <div id="catalogMeta" class="hint">Đang nạp danh mục loài ngoại tuyến...</div>
 
-          <!-- Nút hỗ trợ nhận diện loài qua ảnh -->
+          <!-- Nút hỗ trợ chụp ảnh hiện trường & nhận diện loài -->
           <button type="button" class="btn btn-camera" onclick="identifySpeciesFromPhoto()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
-            Chụp ảnh → Gợi ý tên loài
+            📷 Chụp ảnh hiện trường &amp; Nhận diện loài (AI / Gợi ý)
           </button>
           <input type="file" id="identifyPhoto" accept="image/*" capture="environment" style="display:none" onchange="processIdentifyPhoto()">
           <div id="identifyResult"></div>
@@ -317,6 +317,31 @@
         <div class="card-title">Nhật ký gần đây trên máy này</div>
         <div id="historyList"></div>
       </div>
+
+      <!-- Khối Cài đặt kết nối, Bảo mật Token & Gemini AI -->
+      <details class="card" id="settingsDetails" style="margin-top: 14px; cursor: pointer;">
+        <summary style="font-weight: 700; color: #1e3a2f; display: flex; align-items: center; justify-content: space-between;">
+          <span>⚙️ Cài đặt đồng bộ, Bảo mật &amp; Gemini AI</span>
+          <span style="font-size: 11px; color: #0284c7; font-weight: normal;">Bấm để xem / sửa</span>
+        </summary>
+        <div style="margin-top: 14px; cursor: default; border-top: 1px dashed var(--border); padding-top: 12px;">
+          <label>Google Apps Script Web App URL</label>
+          <input type="url" id="settingGasUrl" placeholder="https://script.google.com/macros/s/.../exec">
+          <div class="hint">Mặc định dùng Web App của VQG. Bạn có thể dán URL Web App riêng nếu tự triển khai.</div>
+
+          <label style="margin-top: 10px;">Mã xác thực chống spam (API Secret Token)</label>
+          <input type="password" id="settingApiToken" placeholder="Để trống nếu máy chủ không bật mã bảo mật">
+          <div class="hint">Chống bắn rác vào Google Sheets khi repo công khai. Khớp với CONFIG.API_SECRET_TOKEN trong Code.gs.</div>
+
+          <label style="margin-top: 10px;">Google Gemini API Key (Nhận diện ảnh AI)</label>
+          <input type="password" id="settingGeminiKey" placeholder="AIzaSy...">
+          <div class="hint">Nhập Gemini API Key cá nhân để nhận diện trực tiếp ảnh hiện trường. Khoá được lưu an toàn trên máy này (localStorage) và không tải lên máy chủ.</div>
+
+          <button type="button" class="btn" style="background:#0284c7; color:#fff; width:100%; margin-top:12px; padding:10px; font-weight:600;" onclick="saveCustomSettings()">
+            💾 Lưu cấu hình này
+          </button>
+        </div>
+      </details>
     </div>
   </div>
 
@@ -418,8 +443,56 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
   <script>
-    // === BẮT BUỘC: Dán URL Web App của Google Apps Script (Code.gs) vào dòng dưới đây ===
-    const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbylKKPH9Oj07BE-nr_0hAvckrQNIDtSzauf7btaFL0xuCjTNX9uN6xuVGg48QRYSB9c/exec';
+    // === Cấu hình Web App Google Apps Script & Khoá bảo mật ===
+    const DEFAULT_GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbylKKPH9Oj07BE-nr_0hAvckrQNIDtSzauf7btaFL0xuCjTNX9uN6xuVGg48QRYSB9c/exec';
+
+    function getEffectiveGasUrl() {
+      const custom = (localStorage.getItem('yd_gas_url') || '').trim();
+      return (custom && custom.indexOf('https://script.google.com/') === 0) ? custom : DEFAULT_GAS_WEBAPP_URL;
+    }
+
+    function getEffectiveApiToken() {
+      return (localStorage.getItem('yd_api_token') || '').trim();
+    }
+
+    function getEffectiveGeminiKey() {
+      return (localStorage.getItem('yd_gemini_key') || '').trim();
+    }
+
+    function loadCustomSettings() {
+      const urlEl = document.getElementById('settingGasUrl');
+      const tokenEl = document.getElementById('settingApiToken');
+      const keyEl = document.getElementById('settingGeminiKey');
+      if (urlEl) urlEl.value = localStorage.getItem('yd_gas_url') || DEFAULT_GAS_WEBAPP_URL;
+      if (tokenEl) tokenEl.value = localStorage.getItem('yd_api_token') || '';
+      if (keyEl) keyEl.value = localStorage.getItem('yd_gemini_key') || '';
+    }
+
+    function saveCustomSettings() {
+      const url = (document.getElementById('settingGasUrl').value || '').trim();
+      const token = (document.getElementById('settingApiToken').value || '').trim();
+      const key = (document.getElementById('settingGeminiKey').value || '').trim();
+
+      if (url && url !== DEFAULT_GAS_WEBAPP_URL) {
+        localStorage.setItem('yd_gas_url', url);
+      } else {
+        localStorage.removeItem('yd_gas_url');
+      }
+
+      if (token) {
+        localStorage.setItem('yd_api_token', token);
+      } else {
+        localStorage.removeItem('yd_api_token');
+      }
+
+      if (key) {
+        localStorage.setItem('yd_gemini_key', key);
+      } else {
+        localStorage.removeItem('yd_gemini_key');
+      }
+
+      alert('Đã lưu cấu hình thành công! Khoá bí mật và API Key được lưu an toàn trên máy này.');
+    }
 
     const DB_NAME = 'YokDonBioLogPWA';
     const DB_VERSION = 2;
@@ -492,10 +565,15 @@
 
     // ====================== APPS SCRIPT API ======================
     async function postToAppsScript(payload) {
-      if (!GAS_WEBAPP_URL || GAS_WEBAPP_URL.indexOf('https://script.google.com/') !== 0) {
-        throw new Error('Chưa cấu hình GAS_WEBAPP_URL trong file index.html');
+      const gasUrl = getEffectiveGasUrl();
+      if (!gasUrl || gasUrl.indexOf('https://script.google.com/') !== 0) {
+        throw new Error('Chưa cấu hình Web App URL hợp lệ');
       }
-      const res = await fetch(GAS_WEBAPP_URL, {
+      const apiToken = getEffectiveApiToken();
+      if (apiToken) {
+        payload.apiToken = apiToken;
+      }
+      const res = await fetch(gasUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(payload)
@@ -522,9 +600,10 @@
         }
       }
 
-      if (navigator.onLine && GAS_WEBAPP_URL.indexOf('https://script.google.com/') === 0) {
+      const gasUrl = getEffectiveGasUrl();
+      if (navigator.onLine && gasUrl.indexOf('https://script.google.com/') === 0) {
         try {
-          const r = await fetch(GAS_WEBAPP_URL + '?action=catalog');
+          const r = await fetch(gasUrl + '?action=catalog');
           const live = await r.json();
           if (live && live.success && live.items && live.items.length > 0) {
             speciesCatalog = live.items;
@@ -571,74 +650,138 @@
 
     // ====================== CHUYỂN ĐỔI TỌA ĐỘ VN-2000 <-> WGS-84 ======================
     // Quy chuẩn KTT 108°30' (108.5°E), Múi 3°, Hệ số k=0.9999, X0=500000m, Y0=0m (Áp dụng Đắk Lắk & VQG Yok Đôn)
-    function wgs84ToVn2000(lon, lat) {
-      if (isNaN(lon) || isNaN(lat) || lon === null || lat === null) return [null, null];
-      const a = 6378137.0;
-      const f = 1 / 298.257223563;
-      const e2 = 2 * f - f * f;
-      const k0 = 0.9999;
-      const x0 = 500000.0;
-      const y0 = 0.0;
-      const lon0 = 108.5 * Math.PI / 180.0;
-      
-      const phi = lat * Math.PI / 180.0;
-      const lam = lon * Math.PI / 180.0;
-      
-      const e_prime2 = e2 / (1.0 - e2);
-      const N = a / Math.sqrt(1.0 - e2 * Math.sin(phi) * Math.sin(phi));
+    // Tích hợp 7 tham số chuyển đổi hệ quy chiếu Bursa-Wolf theo QĐ 05/2007/QĐ-BTNMT của Bộ Tài nguyên và Môi trường:
+    // dX = -191.90441429m, dY = -39.30318279m, dZ = -111.45032835m
+    // rX = +0.00928836", rY = -0.01975479", rZ = +0.00427372", s = +0.252906278 ppm
+    const ELLIP_A = 6378137.0;
+    const ELLIP_F = 1.0 / 298.257223563;
+    const ELLIP_E2 = 2 * ELLIP_F - ELLIP_F * ELLIP_F;
+
+    const BURSA_DX = -191.90441429;
+    const BURSA_DY = -39.30318279;
+    const BURSA_DZ = -111.45032835;
+    const BURSA_SEC_TO_RAD = Math.PI / (180.0 * 3600.0);
+    const BURSA_RX = 0.00928836 * BURSA_SEC_TO_RAD;
+    const BURSA_RY = -0.01975479 * BURSA_SEC_TO_RAD;
+    const BURSA_RZ = 0.00427372 * BURSA_SEC_TO_RAD;
+    const BURSA_SCALE = 1.0 + 0.252906278 * 1e-6;
+
+    function wgs84ToVn2000Geo(lonDeg, latDeg, h = 0.0) {
+      const phi = latDeg * Math.PI / 180.0;
+      const lam = lonDeg * Math.PI / 180.0;
+      const N = ELLIP_A / Math.sqrt(1.0 - ELLIP_E2 * Math.sin(phi) * Math.sin(phi));
+      const X = (N + h) * Math.cos(phi) * Math.cos(lam);
+      const Y = (N + h) * Math.cos(phi) * Math.sin(lam);
+      const Z = (N * (1.0 - ELLIP_E2) + h) * Math.sin(phi);
+
+      const xs = (X - BURSA_DX) / BURSA_SCALE;
+      const ys = (Y - BURSA_DY) / BURSA_SCALE;
+      const zs = (Z - BURSA_DZ) / BURSA_SCALE;
+
+      const Xvn = xs + BURSA_RZ * ys - BURSA_RY * zs;
+      const Yvn = -BURSA_RZ * xs + ys + BURSA_RX * zs;
+      const Zvn = BURSA_RY * xs - BURSA_RX * ys + zs;
+
+      const p = Math.sqrt(Xvn * Xvn + Yvn * Yvn);
+      const b = ELLIP_A * Math.sqrt(1.0 - ELLIP_E2);
+      const ePrime2 = (ELLIP_A * ELLIP_A - b * b) / (b * b);
+      const theta = Math.atan2(Zvn * ELLIP_A, p * b);
+      const latVn = Math.atan2(Zvn + ePrime2 * b * Math.pow(Math.sin(theta), 3),
+                               p - ELLIP_E2 * ELLIP_A * Math.pow(Math.cos(theta), 3));
+      const lonVn = Math.atan2(Yvn, Xvn);
+      return [lonVn * 180.0 / Math.PI, latVn * 180.0 / Math.PI];
+    }
+
+    function vn2000GeoToWgs84(lonDeg, latDeg, h = 0.0) {
+      const phi = latDeg * Math.PI / 180.0;
+      const lam = lonDeg * Math.PI / 180.0;
+      const N = ELLIP_A / Math.sqrt(1.0 - ELLIP_E2 * Math.sin(phi) * Math.sin(phi));
+      const Xvn = (N + h) * Math.cos(phi) * Math.cos(lam);
+      const Yvn = (N + h) * Math.cos(phi) * Math.sin(lam);
+      const Zvn = (N * (1.0 - ELLIP_E2) + h) * Math.sin(phi);
+
+      const Xrot = Xvn - BURSA_RZ * Yvn + BURSA_RY * Zvn;
+      const Yrot = BURSA_RZ * Xvn + Yvn - BURSA_RX * Zvn;
+      const Zrot = -BURSA_RY * Xvn + BURSA_RX * Yvn + Zvn;
+
+      const Xwgs = BURSA_DX + BURSA_SCALE * Xrot;
+      const Ywgs = BURSA_DY + BURSA_SCALE * Yrot;
+      const Zwgs = BURSA_DZ + BURSA_SCALE * Zrot;
+
+      const p = Math.sqrt(Xwgs * Xwgs + Ywgs * Ywgs);
+      const b = ELLIP_A * Math.sqrt(1.0 - ELLIP_E2);
+      const ePrime2 = (ELLIP_A * ELLIP_A - b * b) / (b * b);
+      const theta = Math.atan2(Zwgs * ELLIP_A, p * b);
+      const latWgs = Math.atan2(Zwgs + ePrime2 * b * Math.pow(Math.sin(theta), 3),
+                                p - ELLIP_E2 * ELLIP_A * Math.pow(Math.cos(theta), 3));
+      const lonWgs = Math.atan2(Ywgs, Xwgs);
+      return [lonWgs * 180.0 / Math.PI, latWgs * 180.0 / Math.PI];
+    }
+
+    function tmProject(lonDeg, latDeg, l0Deg = 108.5, k0 = 0.9999, x0 = 500000.0, y0 = 0.0) {
+      const phi = latDeg * Math.PI / 180.0;
+      const lam = lonDeg * Math.PI / 180.0;
+      const lon0 = l0Deg * Math.PI / 180.0;
+      const ePrime2 = ELLIP_E2 / (1.0 - ELLIP_E2);
+      const N = ELLIP_A / Math.sqrt(1.0 - ELLIP_E2 * Math.sin(phi) * Math.sin(phi));
       const T = Math.tan(phi) * Math.tan(phi);
-      const C = e_prime2 * Math.cos(phi) * Math.cos(phi);
+      const C = ePrime2 * Math.cos(phi) * Math.cos(phi);
       const A = (lam - lon0) * Math.cos(phi);
-      
-      const M = a * ((1 - e2/4 - 3*e2*e2/64 - 5*e2*e2*e2/256) * phi
-               - (3*e2/8 + 3*e2*e2/32 + 45*e2*e2*e2/1024) * Math.sin(2*phi)
-               + (15*e2*e2/256 + 45*e2*e2*e2/1024) * Math.sin(4*phi)
-               - (35*e2*e2*e2/3072) * Math.sin(6*phi));
-               
-      const x = x0 + k0 * N * (A + (1 - T + C) * Math.pow(A, 3) / 6.0 + (5 - 18*T + T*T + 72*C - 58*e_prime2) * Math.pow(A, 5) / 120.0);
-      const y = y0 + k0 * (M + N * Math.tan(phi) * (Math.pow(A, 2) / 2.0 + (5 - T + 9*C + 4*C*C) * Math.pow(A, 4) / 24.0 + (61 - 58*T + T*T + 600*C - 330*e_prime2) * Math.pow(A, 6) / 720.0));
+
+      const M = ELLIP_A * ((1 - ELLIP_E2/4 - 3*ELLIP_E2*ELLIP_E2/64 - 5*ELLIP_E2*ELLIP_E2*ELLIP_E2/256) * phi
+               - (3*ELLIP_E2/8 + 3*ELLIP_E2*ELLIP_E2/32 + 45*ELLIP_E2*ELLIP_E2*ELLIP_E2/1024) * Math.sin(2*phi)
+               + (15*ELLIP_E2*ELLIP_E2/256 + 45*ELLIP_E2*ELLIP_E2*ELLIP_E2/1024) * Math.sin(4*phi)
+               - (35*ELLIP_E2*ELLIP_E2*ELLIP_E2/3072) * Math.sin(6*phi));
+
+      const x = x0 + k0 * N * (A + (1 - T + C) * Math.pow(A, 3) / 6.0 + (5 - 18*T + T*T + 72*C - 58*ePrime2) * Math.pow(A, 5) / 120.0);
+      const y = y0 + k0 * (M + N * Math.tan(phi) * (Math.pow(A, 2) / 2.0 + (5 - T + 9*C + 4*C*C) * Math.pow(A, 4) / 24.0 + (61 - 58*T + T*T + 600*C - 330*ePrime2) * Math.pow(A, 6) / 720.0));
       return [Math.round(x * 10) / 10, Math.round(y * 10) / 10];
     }
 
-    function vn2000ToWgs84(x, y) {
-      if (isNaN(x) || isNaN(y) || x === null || y === null) return [null, null];
-      const a = 6378137.0;
-      const f = 1 / 298.257223563;
-      const e2 = 2 * f - f * f;
-      const k0 = 0.9999;
-      const x0 = 500000.0;
-      const y0 = 0.0;
-      const lon0 = 108.5 * Math.PI / 180.0;
-
-      const e1 = (1 - Math.sqrt(1 - e2)) / (1 + Math.sqrt(1 - e2));
+    function tmInverse(x, y, l0Deg = 108.5, k0 = 0.9999, x0 = 500000.0, y0 = 0.0) {
+      const lon0 = l0Deg * Math.PI / 180.0;
+      const e1 = (1 - Math.sqrt(1 - ELLIP_E2)) / (1 + Math.sqrt(1 - ELLIP_E2));
       const M = (y - y0) / k0;
-      const mu = M / (a * (1 - e2/4 - 3*e2*e2/64 - 5*e2*e2*e2/256));
+      const mu = M / (ELLIP_A * (1 - ELLIP_E2/4 - 3*ELLIP_E2*ELLIP_E2/64 - 5*ELLIP_E2*ELLIP_E2*ELLIP_E2/256));
 
       const phi1 = mu + (3*e1/2 - 27*Math.pow(e1, 3)/32) * Math.sin(2*mu)
                       + (21*e1*e1/16 - 55*Math.pow(e1, 4)/32) * Math.sin(4*mu)
                       + (151*Math.pow(e1, 3)/96) * Math.sin(6*mu)
                       + (1097*Math.pow(e1, 4)/512) * Math.sin(8*mu);
 
-      const e_prime2 = e2 / (1.0 - e2);
-      const C1 = e_prime2 * Math.pow(Math.cos(phi1), 2);
+      const ePrime2 = ELLIP_E2 / (1.0 - ELLIP_E2);
+      const C1 = ePrime2 * Math.pow(Math.cos(phi1), 2);
       const T1 = Math.pow(Math.tan(phi1), 2);
-      const N1 = a / Math.sqrt(1 - e2 * Math.pow(Math.sin(phi1), 2));
-      const R1 = a * (1 - e2) / Math.pow(1 - e2 * Math.pow(Math.sin(phi1), 2), 1.5);
+      const N1 = ELLIP_A / Math.sqrt(1 - ELLIP_E2 * Math.pow(Math.sin(phi1), 2));
+      const R1 = ELLIP_A * (1 - ELLIP_E2) / Math.pow(1 - ELLIP_E2 * Math.pow(Math.sin(phi1), 2), 1.5);
       const D = (x - x0) / (N1 * k0);
 
       const lat = phi1 - (N1 * Math.tan(phi1) / R1) * (
         Math.pow(D, 2) / 2
-        - (5 + 3*T1 + 10*C1 - 4*C1*C1 - 9*e_prime2) * Math.pow(D, 4) / 24
-        + (61 + 90*T1 + 298*C1 + 45*T1*T1 - 252*e_prime2 - 3*C1*C1) * Math.pow(D, 6) / 720
+        - (5 + 3*T1 + 10*C1 - 4*C1*C1 - 9*ePrime2) * Math.pow(D, 4) / 24
+        + (61 + 90*T1 + 298*C1 + 45*T1*T1 - 252*ePrime2 - 3*C1*C1) * Math.pow(D, 6) / 720
       );
 
       const lon = lon0 + (
         D
         - (1 + 2*T1 + C1) * Math.pow(D, 3) / 6
-        + (5 - 2*C1 + 28*T1 - 3*C1*C1 + 8*e_prime2 + 24*T1*T1) * Math.pow(D, 5) / 120
+        + (5 - 2*C1 + 28*T1 - 3*C1*C1 + 8*ePrime2 + 24*T1*T1) * Math.pow(D, 5) / 120
       ) / Math.cos(phi1);
 
-      return [Math.round(lon * 180 / Math.PI * 1000000) / 1000000, Math.round(lat * 180 / Math.PI * 1000000) / 1000000];
+      return [lon * 180.0 / Math.PI, lat * 180.0 / Math.PI];
+    }
+
+    function wgs84ToVn2000(lon, lat) {
+      if (isNaN(lon) || isNaN(lat) || lon === null || lat === null) return [null, null];
+      const [lonVn, latVn] = wgs84ToVn2000Geo(lon, lat);
+      return tmProject(lonVn, latVn);
+    }
+
+    function vn2000ToWgs84(x, y) {
+      if (isNaN(x) || isNaN(y) || x === null || y === null) return [null, null];
+      const [lonVn, latVn] = tmInverse(x, y);
+      const [lonWgs, latWgs] = vn2000GeoToWgs84(lonVn, latVn);
+      return [Math.round(lonWgs * 1000000) / 1000000, Math.round(latWgs * 1000000) / 1000000];
     }
 
     function onWgs84Input() {
@@ -1655,7 +1798,7 @@
       downloadFile(csv, 'YokDon_BioLog_' + dateStr + '.csv', 'text/csv;charset=utf-8');
     }
 
-    // ====================== SPECIES PHOTO IDENTIFICATION ======================
+    // ====================== SPECIES PHOTO IDENTIFICATION (GEMINI AI & OFFLINE) ======================
     function identifySpeciesFromPhoto() {
       document.getElementById('identifyPhoto').click();
     }
@@ -1670,37 +1813,14 @@
       resultDiv.style.display = 'block';
       resultDiv.style.background = '#fff8e1';
       resultDiv.style.color = '#8d4e00';
-      resultDiv.textContent = 'Đang phân tích ảnh, so sánh với 1.746 loài Yok Đôn...';
+      resultDiv.textContent = 'Đang xử lý ảnh hiện trường...';
 
       try {
-        // Nén ảnh cho nhẹ
         const compressed = await compressImage(file);
         const group = document.getElementById('group').value;
+        const geminiKey = getEffectiveGeminiKey();
 
-        // Tìm trong catalog dựa trên nhóm đang chọn
-        const candidates = speciesCatalog.filter(s => s.g === group || group === 'Khác / Chưa rõ');
-
-        if (candidates.length === 0) {
-          resultDiv.textContent = 'Không tìm thấy loài nào trong nhóm "' + group + '". Hãy thử đổi nhóm loài.';
-          return;
-        }
-
-        // Hiện gợi ý dựa trên nhóm (tính năng sẵn sàng để nâng cấp lên AI nhận diện hình ảnh)
-        // Hiện tại: gợi ý top loài phổ biến trong nhóm đang chọn để cán bộ chọn nhanh
-        const suggestions = candidates.slice(0, 8);
-        resultDiv.className = 'show';
-        resultDiv.style.background = '#e8f5e9';
-        resultDiv.style.color = '#1b5e20';
-        resultDiv.innerHTML =
-          '<strong>📷 Ảnh đã chụp! Gợi ý loài phổ biến nhóm "' + group + '":</strong><br>' +
-          suggestions.map(s =>
-            '<span style="display:inline-block;margin:3px 4px;padding:4px 10px;background:#dcfce7;border-radius:16px;font-size:12px;cursor:pointer" ' +
-            'onclick="pickSpecies(\'' + s.l.replace(/'/g, "\\'") + '\')">' + s.l.split(' (')[0] + '</span>'
-          ).join('') +
-          '<br><small style="color:#52606d">Chạm vào tên loài để chọn nhanh. ' +
-          'Hoặc gõ trực tiếp vào ô tìm kiếm phía trên.</small>';
-
-        // Thêm ảnh vừa chụp vào ô ảnh hiện trường (nếu chưa có)
+        // Tự động thêm ảnh vừa chụp vào danh mục ảnh đính kèm nếu chưa có
         const photosInput = document.getElementById('photos');
         if (photosInput.files.length === 0) {
           const dt = new DataTransfer();
@@ -1708,6 +1828,96 @@
           photosInput.files = dt.files;
           previewImages();
         }
+
+        // KIỂM TRA CHẾ ĐỘ ONLINE VÀ CÓ GEMINI API KEY CÁ NHÂN
+        if (navigator.onLine && geminiKey) {
+          resultDiv.textContent = 'Đang gửi ảnh tới Google Gemini AI để nhận diện loài...';
+          const base64Data = compressed.base64Data;
+          const mimeType = compressed.mimeType || 'image/jpeg';
+
+          const promptText = 'Bạn là chuyên gia phân loại sinh vật tại Vườn quốc gia Yok Đôn (Đắk Lắk, Việt Nam). Hãy phân tích ảnh chụp này và dự đoán loài. Hãy trả về ĐÚNG định dạng JSON thuần túy (không dùng markdown, không ```json), cấu trúc:\n' +
+            '{"species_vn": "Tên tiếng Việt dự đoán", "species_latin": "Tên khoa học", "group": "Chim|Thú|Thực vật|Bò sát|Cá|Khác", "confidence": "Cao|Trung bình|Thấp", "reason": "Mô tả ngắn 1-2 đặc điểm nhận diện rõ nhất"}' +
+            '\nNếu không chắc chắn, hãy đưa ra loài khả dĩ nhất tại Yok Đôn kèm độ tin cậy.';
+
+          const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + encodeURIComponent(geminiKey);
+          const reqBody = {
+            contents: [{
+              parts: [
+                { text: promptText },
+                {
+                  inline_data: {
+                    mime_type: mimeType,
+                    data: base64Data
+                  }
+                }
+              ]
+            }]
+          };
+
+          const aiRes = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(reqBody)
+          });
+
+          if (aiRes.ok) {
+            const aiJson = await aiRes.json();
+            const rawText = aiJson.candidates && aiJson.candidates[0] && aiJson.candidates[0].content && aiJson.candidates[0].content.parts && aiJson.candidates[0].content.parts[0] ? aiJson.candidates[0].content.parts[0].text : '';
+            
+            let parsed = null;
+            try {
+              const cleanJson = rawText.replace(/```(?:json)?/gi, '').trim();
+              parsed = JSON.parse(cleanJson);
+            } catch (_) {}
+
+            if (parsed && parsed.species_vn) {
+              const vn = parsed.species_vn;
+              const latin = parsed.species_latin ? ' (' + parsed.species_latin + ')' : '';
+              const aiGroup = parsed.group || group;
+              const conf = parsed.confidence || 'Trung bình';
+              const reason = parsed.reason || '';
+
+              // Đối chiếu danh mục 1.752 loài của VQG
+              let matched = speciesCatalog.find(s => s.l.toLowerCase().includes(vn.toLowerCase()));
+              const chosenName = matched ? matched.l : (vn + latin);
+
+              resultDiv.className = 'show';
+              resultDiv.style.background = '#e8f5e9';
+              resultDiv.style.color = '#1b5e20';
+              resultDiv.innerHTML =
+                '<strong>🤖 Kết quả Gemini AI: ' + vn + '</strong> <em>' + latin + '</em><br>' +
+                '<span style="font-size:12px;">Nhóm: <b>' + aiGroup + '</b> | Độ tin cậy: <b>' + conf + '</b></span><br>' +
+                (reason ? '<span style="font-size:11px;color:#2e7d32;">Đặc điểm: ' + reason + '</span><br>' : '') +
+                '<button type="button" class="btn" style="background:#2e7d32;color:#fff;padding:6px 12px;font-size:12px;margin:6px 0;width:auto;" onclick="applyAiSpecies(\'' + chosenName.replace(/'/g, "\\'") + '\', \'' + aiGroup.replace(/'/g, "\\'") + '\')">' +
+                '✅ Chọn loài này vào phiếu' +
+                '</button>' +
+                (matched ? '<br><small style="color:#1b5e20">✔ Khớp chuẩn danh mục VQG: ' + matched.l + '</small>' : '');
+              input.value = '';
+              return;
+            }
+          }
+        }
+
+        // CHẾ ĐỘ NGOẠI TUYẾN / CHƯA CẤU HÌNH GEMINI KEY (GỢI Ý DANH MỤC THỰC ĐỊA)
+        const candidates = speciesCatalog.filter(s => s.g === group || group === 'Khác / Chưa rõ');
+        if (candidates.length === 0) {
+          resultDiv.textContent = 'Không tìm thấy loài nào trong nhóm "' + group + '". Hãy thử đổi nhóm loài.';
+          return;
+        }
+
+        const suggestions = candidates.slice(0, 8);
+        resultDiv.className = 'show';
+        resultDiv.style.background = '#f0fdf4';
+        resultDiv.style.border = '1px solid #bbf7d0';
+        resultDiv.style.color = '#166534';
+        resultDiv.innerHTML =
+          '<strong>📷 Đã nhận ảnh! Gợi ý danh mục 1.752 loài nhóm "' + group + '":</strong><br>' +
+          suggestions.map(s =>
+            '<span style="display:inline-block;margin:3px 4px;padding:4px 10px;background:#dcfce7;border-radius:16px;font-size:12px;cursor:pointer;border:1px solid #86efac;" ' +
+            'onclick="pickSpecies(\'' + s.l.replace(/'/g, "\\'") + '\')">' + s.l.split(' (')[0] + '</span>'
+          ).join('') +
+          '<br><small style="color:#4b5563;display:block;margin-top:6px;">Chạm vào tên loài để chọn nhanh. (Mẹo: Mở mục <b>⚙️ Cài đặt đồng bộ &amp; Gemini AI</b> bên dưới để nhập API Key giúp AI tự nhận diện loài khi có mạng).</small>';
+
       } catch (err) {
         resultDiv.textContent = 'Lỗi xử lý ảnh: ' + err.message;
         resultDiv.style.background = '#ffebee';
@@ -1715,6 +1925,20 @@
       }
 
       input.value = '';
+    }
+
+    function applyAiSpecies(fullName, groupName) {
+      document.getElementById('speciesSearch').value = fullName;
+      if (groupName) {
+        const grpEl = document.getElementById('group');
+        for (let i = 0; i < grpEl.options.length; i++) {
+          if (grpEl.options[i].value === groupName) {
+            grpEl.selectedIndex = i;
+            break;
+          }
+        }
+      }
+      document.getElementById('identifyResult').style.display = 'none';
     }
 
     function pickSpecies(name) {
@@ -1728,6 +1952,7 @@
 
     (async function init() {
       loadProfile();
+      loadCustomSettings();
       await openDB();
       await refreshUI();
       updateNetworkUI();

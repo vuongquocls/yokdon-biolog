@@ -1,5 +1,7 @@
-const CACHE_NAME = 'yokdon-biolog-v6';
-const ASSETS = [
+const CACHE_NAME = 'yokdon-biolog-v7';
+
+// Tài nguyên lõi cần thiết để ứng dụng hoạt động ngoại tuyến ngay lập tức
+const CORE_ASSETS = [
   './',
   './index.html',
   './manifest.json',
@@ -13,8 +15,6 @@ const ASSETS = [
   './layer_pkcn_dvhc.geojson',
   './layer_tieukhu.geojson',
   './layer_tieukhu_diem.geojson',
-  './layer_dtk.geojson',
-  './layer_song_srp.geojson',
   './layer_ql14c.geojson',
   './layer_giaothong.geojson',
   './layer_biengioi_cpc.geojson',
@@ -23,7 +23,13 @@ const ASSETS = [
   './layer_cql.geojson'
 ];
 
-// Leaflet CDN assets — cache on first use (runtime caching)
+// Các lớp GeoJSON dung lượng lớn (~4.5MB), tách tải nền lazy để tránh rớt gói khi mạng yếu
+const LAZY_ASSETS = [
+  './layer_dtk.geojson',
+  './layer_song_srp.geojson'
+];
+
+// CDN thư viện & bản đồ nền — cache khi sử dụng (runtime caching)
 const CDN_PATTERNS = [
   'unpkg.com/leaflet',
   'tile.openstreetmap.org',
@@ -32,7 +38,25 @@ const CDN_PATTERNS = [
 
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then(async cache => {
+      // Dùng Promise.allSettled để không bị ngắt toàn bộ quá trình install nếu sóng yếu rớt 1 file
+      await Promise.allSettled(
+        CORE_ASSETS.map(url =>
+          cache.add(url).catch(err => {
+            console.warn('[SW Install] Không tải trước được:', url, err);
+          })
+        )
+      );
+
+      // Tải nền lazy cho các lớp nặng, không block sự kiện install
+      Promise.allSettled(
+        LAZY_ASSETS.map(url =>
+          cache.add(url).catch(err => {
+            console.log('[SW Install] Tài nguyên nặng sẽ được nạp khi kích hoạt hoặc online:', url);
+          })
+        )
+      );
+    }).then(() => self.skipWaiting())
   );
 });
 
@@ -50,12 +74,15 @@ self.addEventListener('fetch', event => {
 
   const url = new URL(req.url);
 
-  // Cache-first for local assets (GeoJSON layers, HTML, JSON, Icons)
+  // Cache-first cho tài nguyên nội bộ (HTML, CSS/JS nội bộ, GeoJSON, icon, catalog)
   if (url.origin === self.location.origin) {
     event.respondWith(
       caches.match(req).then(cached => {
         if (cached) return cached;
         return fetch(req).then(res => {
+          if (!res || res.status !== 200 || res.type !== 'basic') {
+            return res;
+          }
           const clone = res.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
           return res;
@@ -65,13 +92,15 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Network-first + cache for CDN (Leaflet, map tiles)
+  // Network-first + cache cho CDN (Leaflet, tile map)
   const isCDN = CDN_PATTERNS.some(p => url.href.includes(p));
   if (isCDN) {
     event.respondWith(
       fetch(req).then(res => {
-        const clone = res.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
+        if (res && res.status === 200) {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
+        }
         return res;
       }).catch(() => caches.match(req))
     );
