@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yokdon-biolog-v8';
+const CACHE_NAME = 'yokdon-biolog-v9';
 
 // Tài nguyên lõi cần thiết để ứng dụng hoạt động ngoại tuyến ngay lập tức
 const CORE_ASSETS = [

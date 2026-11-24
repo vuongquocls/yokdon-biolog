@@ -358,7 +358,10 @@
   <div id="tabExport" class="tab-panel">
     <div class="container">
       <div class="card" style="margin-top: 12px;">
-        <div class="card-title">Xuất dữ liệu quan trắc</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <div class="card-title" style="margin-bottom:0;">Xuất dữ liệu quan trắc</div>
+          <button type="button" class="btn" style="width:auto; padding:5px 12px; font-size:12px; background:#e8f5e9; color:#1b5e20; border:1px solid #a5d6a7; border-radius:6px; cursor:pointer;" onclick="manualRefreshExport()">🔄 Tải lại từ Sheet</button>
+        </div>
         <div id="exportCount" class="export-count">Đang tải...</div>
 
         <button class="export-btn" onclick="exportGeoJSON()">
@@ -449,7 +452,9 @@
     // ====================== SERVICE WORKER ======================
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(() => {});
+        navigator.serviceWorker.register('./sw.js').then(reg => {
+          reg.update();
+        }).catch(() => {});
       });
     }
 
@@ -993,6 +998,8 @@
           resetEntryFields();
         }
         await refreshUI();
+        await updateExportCount();
+        if (markersLayer) loadMapMarkers();
       } catch (err) {
         showStatus('Lỗi xử lý: ' + err.message, 'err');
       } finally {
@@ -1602,13 +1609,14 @@
       if (navigator.onLine && GAS_WEBAPP_URL && GAS_WEBAPP_URL.indexOf('https://script.google.com/') === 0) {
         try {
           const res = await fetch(GAS_WEBAPP_URL + '?action=records').then(r => r.json());
-          if (res && res.success && Array.isArray(res.records)) {
+          const recordsList = (res && res.success) ? (res.records || res.items || []) : [];
+          if (Array.isArray(recordsList)) {
             await dbOp('meta', 'readwrite', s => s.put({
               key: 'sheetRecords',
-              records: res.records,
+              records: recordsList,
               ts: Date.now()
             }));
-            return res.records;
+            return recordsList;
           }
         } catch(e) {
           console.warn('Lỗi nạp records từ Google Sheet:', e);
@@ -1619,39 +1627,47 @@
     }
 
     async function getMergedAllRecords() {
-      const [sheetRecords, localHistory, localQueue] = await Promise.all([
-        fetchAndCacheSheetRecords(false),
-        dbOp('history', 'readonly', s => s.getAll()) || [],
-        dbOp('queue', 'readonly', s => s.getAll()) || []
-      ]);
+      let sheetRecords = [];
+      try {
+        sheetRecords = await fetchAndCacheSheetRecords(false);
+      } catch (e) {
+        console.warn('Lỗi fetchAndCacheSheetRecords:', e);
+      }
+      const localHistory = (await dbOp('history', 'readonly', s => s.getAll()).catch(() => [])) || [];
+      const localQueue = (await dbOp('queue', 'readonly', s => s.getAll()).catch(() => [])) || [];
 
       const recordsMap = new Map();
 
       // 1. Dữ liệu từ máy chủ Google Sheets
-      sheetRecords.forEach(r => {
-        const key = r.recordId || r.clientUuid || (r.lat + '_' + r.lon + '_' + r.observedDate);
+      (sheetRecords || []).forEach(r => {
+        const lat = parseFloat(r.lat);
+        const lon = parseFloat(r.lon);
+        const key = r.recordId || r.clientUuid || (lat + '_' + lon + '_' + r.observedDate);
         recordsMap.set(key, {
           ...r,
+          lat: isNaN(lat) ? '' : lat,
+          lon: isNaN(lon) ? '' : lon,
           date: r.observedDate,
           time: r.observedTime,
+          label: r.label || (r.speciesLookup ? r.speciesLookup.split(' (')[0] : (r.group || 'Chưa rõ loài')),
           synced: true
         });
       });
 
       // 2. Dữ liệu lịch sử trên máy này
-      localHistory.forEach(h => {
+      (localHistory || []).forEach(h => {
         const key = h.recordId || h.clientUuid;
-        if (recordsMap.has(key)) {
+        if (key && recordsMap.has(key)) {
           recordsMap.set(key, { ...recordsMap.get(key), ...h });
-        } else {
+        } else if (key) {
           recordsMap.set(key, h);
         }
       });
 
       // 3. Dữ liệu trong hàng đợi chờ đồng bộ
-      localQueue.forEach(q => {
+      (localQueue || []).forEach(q => {
         const key = q.clientUuid;
-        if (!recordsMap.has(key)) {
+        if (key && !recordsMap.has(key)) {
           recordsMap.set(key, {
             clientUuid: q.clientUuid,
             recordId: 'Chờ đồng bộ',
@@ -1714,20 +1730,58 @@
 
     // ====================== GIS EXPORT ======================
     async function getExportData() {
-      const all = await getMergedAllRecords();
-      return all.filter(h => {
+      let all = await getMergedAllRecords();
+      let valid = all.filter(h => {
         const lat = parseFloat(h.lat);
         const lon = parseFloat(h.lon);
         return !isNaN(lat) && !isNaN(lon) && lat !== 0 && lon !== 0;
       });
+
+      // Nếu chưa có bản ghi nào nhưng máy đang online, thử tải ép buộc từ Google Sheet một lần nữa
+      if (valid.length === 0 && navigator.onLine) {
+        await fetchAndCacheSheetRecords(true);
+        all = await getMergedAllRecords();
+        valid = all.filter(h => {
+          const lat = parseFloat(h.lat);
+          const lon = parseFloat(h.lon);
+          return !isNaN(lat) && !isNaN(lon) && lat !== 0 && lon !== 0;
+        });
+      }
+
+      return valid;
     }
 
-    async function updateExportCount() {
-      const data = await getExportData();
-      const all = await getMergedAllRecords();
+    async function updateExportCount(showNotice = false) {
       const el = document.getElementById('exportCount');
-      if (el) {
-        el.textContent = data.length + ' bản ghi có tọa độ GPS (trong tổng số ' + all.length + ' ghi nhận trên hệ thống)';
+      if (el) el.innerHTML = '<em>⏳ Đang kiểm tra dữ liệu từ Google Sheet...</em>';
+
+      try {
+        const data = await getExportData();
+        const all = await getMergedAllRecords();
+        if (el) {
+          if (data.length > 0) {
+            el.innerHTML = '<span style="color:#1b5e20; font-weight:600;">✅ ' + data.length + '</span> bản ghi có tọa độ GPS sẵn sàng xuất (trong tổng số ' + all.length + ' ghi nhận trên hệ thống)';
+          } else {
+            el.innerHTML = '<span style="color:#c62828;">⚠️ Chưa có bản ghi nào có tọa độ GPS</span> (Tổng số ghi nhận: ' + all.length + ')';
+          }
+        }
+        if (showNotice) {
+          alert('Đã nạp thành công ' + all.length + ' bản ghi từ hệ thống (' + data.length + ' bản ghi có tọa độ GPS sẵn sàng xuất).');
+        }
+      } catch (err) {
+        if (el) el.textContent = 'Lỗi nạp dữ liệu: ' + err.message;
+      }
+    }
+
+    async function manualRefreshExport() {
+      const el = document.getElementById('exportCount');
+      if (el) el.innerHTML = '<em>🔄 Đang tải dữ liệu mới nhất từ Google Sheet...</em>';
+      try {
+        await fetchAndCacheSheetRecords(true);
+        await updateExportCount(true);
+        await loadMapMarkers();
+      } catch (err) {
+        alert('Lỗi khi tải từ Google Sheet: ' + err.message);
       }
     }
 
@@ -1743,7 +1797,9 @@
 
     async function exportGeoJSON() {
       const data = await getExportData();
-      if (data.length === 0) return alert('Chưa có ghi nhận nào có tọa độ GPS để xuất.');
+      if (data.length === 0) {
+        return alert('Chưa có ghi nhận nào có tọa độ GPS để xuất.\n\nNếu bạn vừa nhập phiếu hoặc cập nhật trên Google Sheet, vui lòng bấm nút "🔄 Tải lại từ Sheet" hoặc kiểm tra kết nối mạng.');
+      }
 
       const geojson = {
         type: 'FeatureCollection',
@@ -1790,7 +1846,9 @@
 
     async function exportKML() {
       const data = await getExportData();
-      if (data.length === 0) return alert('Chưa có ghi nhận nào có tọa độ GPS để xuất.');
+      if (data.length === 0) {
+        return alert('Chưa có ghi nhận nào có tọa độ GPS để xuất.\n\nNếu bạn vừa nhập phiếu hoặc cập nhật trên Google Sheet, vui lòng bấm nút "🔄 Tải lại từ Sheet" hoặc kiểm tra kết nối mạng.');
+      }
 
       const styleMap = {
         'Chim': 'http://maps.google.com/mapfiles/kml/paddle/red-circle.png',
@@ -1844,14 +1902,18 @@
 
     async function exportCSV() {
       const data = await getExportData();
-      if (data.length === 0) return alert('Chưa có ghi nhận nào có tọa độ GPS để xuất.');
+      if (data.length === 0) {
+        return alert('Chưa có ghi nhận nào có tọa độ GPS để xuất.\n\nNếu bạn vừa nhập phiếu hoặc cập nhật trên Google Sheet, vui lòng bấm nút "🔄 Tải lại từ Sheet" hoặc kiểm tra kết nối mạng.');
+      }
 
       const headers = ['ID', 'Mã bản ghi', 'Loài', 'Nhóm', 'Ngày', 'Giờ', 'Đơn vị', 'Người ghi nhận', 'Số lượng', 'ĐVT', 'Lat_WGS84', 'Lon_WGS84', 'VN2000_X_m', 'VN2000_Y_m', 'Địa điểm', 'Sinh cảnh', 'Hành vi', 'Phương pháp', 'Trạng thái đồng bộ', 'Ghi chú'];
       const csvEsc = s => '"' + String(s || '').replace(/"/g, '""') + '"';
 
       let csv = '\uFEFF' + headers.join(',') + '\n'; // BOM for UTF-8 Excel
       data.forEach(h => {
-        const [vnX, vnY] = (h.lat && h.lon) ? wgs84ToVn2000(parseFloat(h.lon), parseFloat(h.lat)) : ['', ''];
+        const lat = parseFloat(h.lat);
+        const lon = parseFloat(h.lon);
+        const [vnX, vnY] = (!isNaN(lat) && !isNaN(lon)) ? wgs84ToVn2000(lon, lat) : ['', ''];
         csv += [
           csvEsc(h.clientUuid || h.recordId),
           csvEsc(h.recordId),

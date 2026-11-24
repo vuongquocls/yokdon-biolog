@@ -260,10 +260,11 @@ function getObservationRecords() {
     return {
       success: true,
       count: records.length,
-      records: records
+      records: records,
+      items: records
     };
   } catch (err) {
-    return { success: false, error: err.message, records: [] };
+    return { success: false, error: err.message, records: [], items: [] };
   }
 }
 
