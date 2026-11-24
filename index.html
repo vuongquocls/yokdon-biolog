@@ -96,8 +96,22 @@
     /* Custom Leaflet Map styling */
     .leaflet-popup-content-wrapper { border-radius: 10px; font-family: inherit; }
     .leaflet-popup-content { margin: 10px 12px; line-height: 1.45; font-size: 13px; }
-    .popup-btn-use { display: inline-block; width: 100%; text-align: center; margin-top: 8px; padding: 6px 10px; background: #2d5a27; color: #fff; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: none; border: none; }
+    .popup-btn-use { display: inline-block; width: 100%; text-align: center; margin-top: 8px; padding: 7px 10px; background: #2d5a27; color: #fff; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: none; border: none; }
     .popup-btn-use:hover { background: #1b5e20; }
+
+    /* Nút Vị trí của tôi (Top bar & Leaflet control) */
+    .btn-locate-top { display: inline-flex; align-items: center; justify-content: center; background: #1976d2; color: #fff; border: none; border-radius: 8px; padding: 9px 13px; font-weight: 600; font-size: 13px; cursor: pointer; white-space: nowrap; box-shadow: 0 1px 3px rgba(0,0,0,0.15); transition: all 0.15s; }
+    .btn-locate-top:hover { background: #1565c0; }
+    .btn-locate-top.locating { background: #e65100; animation: pulse-gps-btn 1.4s infinite; }
+    @keyframes pulse-gps-btn { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+
+    /* Pulsing GPS user location marker */
+    .gps-pulse-wrap { position: relative; width: 24px; height: 24px; }
+    .gps-pulse { position: absolute; width: 26px; height: 26px; left: -1px; top: -1px; border-radius: 50%; background: rgba(25, 118, 210, 0.45); animation: gps-pulsing 2s infinite ease-out; }
+    .gps-dot { position: absolute; left: 4px; top: 4px; width: 16px; height: 16px; border-radius: 50%; background: #1976d2; border: 3px solid #ffffff; box-shadow: 0 0 6px rgba(0,0,0,0.5); }
+    @keyframes gps-pulsing { 0% { transform: scale(0.6); opacity: 1; } 100% { transform: scale(2.4); opacity: 0; } }
+    .leaflet-control-locate { display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; background: #fff; cursor: pointer; border-radius: 4px; box-shadow: 0 1px 5px rgba(0,0,0,0.3); text-decoration: none; }
+    .leaflet-control-locate:hover { background: #f4f4f4; }
   </style>
 </head>
 <body>
@@ -142,8 +156,8 @@
               <option value="Trạm Kiểm lâm số 12">Trạm Kiểm lâm số 12</option>
               <option value="Trạm Kiểm lâm Đắk Ruê">Trạm Kiểm lâm Đắk Ruê</option>
               <option value="Trạm Kiểm lâm Đắk Na">Trạm Kiểm lâm Đắk Na</option>
-              <option value="Trạm Kiểm lâm Đrang Phốk">Trạm Kiểm lâm Đrang Phốk</option>
-              <option value="Trạm Kiểm lâm Sêrêpốk">Trạm Kiểm lâm Sêrêpốk</option>
+              <option value="Trạm Kiểm lâm Đrăng Phốk">Trạm Kiểm lâm Đrăng Phốk</option>
+              <option value="Trạm Kiểm lâm Sê Rê Pôk">Trạm Kiểm lâm Sê Rê Pôk</option>
             </optgroup>
             <optgroup label="Ngoài Vườn">
               <option value="Chuyên gia / Cộng tác viên">Chuyên gia / Cộng tác viên</option>
@@ -313,6 +327,17 @@
         <div class="map-search-row">
           <input type="text" id="mapSearchInput" placeholder="🔍 Tìm Tiểu khu (VD: 408), Trạm KL, Lô, Xã..." onkeypress="if(event.key==='Enter') searchMapLocation()">
           <button type="button" onclick="searchMapLocation()">Tìm nhanh</button>
+          <button type="button" class="btn-locate-top" id="btnLocateTop" onclick="locateUser(true)" title="Định vị GPS vị trí hiện tại của bạn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" style="vertical-align:text-bottom; margin-right:4px;">
+              <circle cx="12" cy="12" r="8"/>
+              <line x1="12" y1="2" x2="12" y2="6"/>
+              <line x1="12" y1="18" x2="12" y2="22"/>
+              <line x1="2" y1="12" x2="6" y2="12"/>
+              <line x1="18" y1="12" x2="22" y2="12"/>
+              <circle cx="12" cy="12" r="2" fill="currentColor"/>
+            </svg>
+            Vị trí của tôi
+          </button>
         </div>
         <div class="layer-chips-scroll" id="layerChipsContainer">
           <!-- Rendered dynamically by initMap -->
@@ -901,7 +926,7 @@
       },
       {
         id: 'layer_tram',
-        name: '18 Trạm & Đội Kiểm lâm',
+        name: '18 Trạm & Đội Kiểm lâm (QĐ 684)',
         color: '#d32f2f',
         defaultOn: true,
         loader: async () => {
@@ -911,7 +936,7 @@
             L.geoJSON(data, {
               pointToLayer: (f, latlng) => {
                 const p = f.properties;
-                searchFeatures.push({ name: p.Ten, type: 'Trạm Kiểm lâm', latlng: latlng, props: p });
+                searchFeatures.push({ name: p.Ten + (p.DanhSachTK ? ' (' + p.DanhSachTK + ')' : ''), type: 'Trạm Kiểm lâm', latlng: latlng, props: p });
                 return L.circleMarker(latlng, {
                   radius: 7,
                   fillColor: '#d32f2f',
@@ -926,12 +951,15 @@
                   '<div style="font-size:13px; line-height:1.5;">' +
                   '<strong style="color:#d32f2f; font-size:14px;">🚩 ' + p.Ten + '</strong><br>' +
                   '<strong>Quản lý:</strong> ' + p.QuanLy + '<br>' +
-                  '<strong>Địa bàn:</strong> ' + p.Xa + ', ' + p.Huyen + '<br>' +
+                  '<strong>Địa bàn:</strong> ' + p.DiaGioiHC + '<br>' +
+                  (p.DienTichHa > 0 ? ('<strong>Diện tích:</strong> ' + Number(p.DienTichHa).toLocaleString('vi-VN') + ' ha<br>') : '') +
+                  (p.DanhSachTK ? ('<strong>Tiểu khu:</strong> ' + p.DanhSachTK + '<br>') : '') +
+                  (p.ViTriMoTa ? ('<em style="color:#555;font-size:12px;">' + p.ViTriMoTa + '</em><br>') : '') +
                   '<hr style="margin:5px 0; border:none; border-top:1px solid #ddd;">' +
                   '<strong>VN-2000 (KTT 108°30\'):</strong><br>' +
-                  'X = <code>' + p.VN2000_X + '</code> m | Y = <code>' + p.VN2000_Y + '</code> m<br>' +
-                  '<strong>WGS-84:</strong> ' + p.WGS84_Lat + '°N, ' + p.WGS84_Lon + '°E<br>' +
-                  '<button class="popup-btn-use" onclick="useMapCoordinate(' + p.WGS84_Lat + ',' + p.WGS84_Lon + ',' + p.VN2000_X + ',' + p.VN2000_Y + ')">📍 Dùng tọa độ trạm này</button>' +
+                  'X = <code>' + Number(p.VN2000_X).toFixed(1) + '</code> m | Y = <code>' + Number(p.VN2000_Y).toFixed(1) + '</code> m<br>' +
+                  '<strong>WGS-84:</strong> ' + Number(p.WGS84_Lat).toFixed(6) + '°N, ' + Number(p.WGS84_Lon).toFixed(6) + '°E<br>' +
+                  '<button class="popup-btn-use" onclick="useMapCoordinate(' + p.WGS84_Lat + ',' + p.WGS84_Lon + ',' + p.VN2000_X + ',' + p.VN2000_Y + ')">📍 Dùng tọa độ trạm này cho ghi nhận</button>' +
                   '</div>'
                 );
               }
@@ -1234,6 +1262,105 @@
       }
     }
 
+    let userLocationMarker = null;
+    let userAccuracyCircle = null;
+    let isLocating = false;
+
+    function locateUser(panTo = true) {
+      const topBtn = document.getElementById('btnLocateTop');
+      const coordDisp = document.getElementById('coordDisplay');
+
+      if (!navigator.geolocation) {
+        alert('Thiết bị hoặc trình duyệt không hỗ trợ định vị GPS.');
+        return;
+      }
+
+      if (isLocating) return;
+      isLocating = true;
+      if (topBtn) topBtn.classList.add('locating');
+      if (coordDisp && panTo) {
+        coordDisp.innerHTML = '📡 <strong>Đang kết nối GPS vệ tinh...</strong> Vui lòng chờ tín hiệu...';
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          isLocating = false;
+          if (topBtn) topBtn.classList.remove('locating');
+
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          const accuracy = pos.coords.accuracy;
+          const [vnX, vnY] = wgs84ToVn2000(lon, lat);
+
+          if (!leafletMap) return;
+
+          if (userLocationMarker) leafletMap.removeLayer(userLocationMarker);
+          if (userAccuracyCircle) leafletMap.removeLayer(userAccuracyCircle);
+
+          // Bán kính sai số GPS
+          userAccuracyCircle = L.circle([lat, lon], {
+            radius: Math.max(accuracy, 10),
+            color: '#1976d2',
+            fillColor: '#90caf9',
+            fillOpacity: 0.25,
+            weight: 1.5
+          }).addTo(leafletMap);
+
+          // Marker định vị với hiệu ứng pulse
+          const pulseIcon = L.divIcon({
+            className: 'user-gps-pulse-container',
+            html: '<div class="gps-pulse-wrap"><div class="gps-pulse"></div><div class="gps-dot"></div></div>',
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+          });
+
+          const popupContent = 
+            '<div style="font-size:13px; line-height:1.5;">' +
+              '<strong style="color:#1565c0; font-size:14px;">🎯 Vị trí hiện tại của bạn</strong><br>' +
+              '<span style="color:#555;">Độ chính xác GPS: <strong>±' + Math.round(accuracy) + ' mét</strong></span><br>' +
+              '<hr style="margin:5px 0; border:none; border-top:1px solid #ddd;">' +
+              '<strong>VN-2000 (KTT 108°30\'):</strong><br>' +
+              'X = <code>' + (vnX ? vnX.toFixed(1) : '-') + '</code> m | Y = <code>' + (vnY ? vnY.toFixed(1) : '-') + '</code> m<br>' +
+              '<strong>WGS-84:</strong> ' + lat.toFixed(6) + '°N, ' + lon.toFixed(6) + '°E<br>' +
+              '<button class="popup-btn-use" onclick="useMapCoordinate(' + lat + ',' + lon + ',' + vnX + ',' + vnY + ')">' +
+                '📍 Dùng vị trí này ghi nhận loài' +
+              '</button>' +
+            '</div>';
+
+          userLocationMarker = L.marker([lat, lon], { icon: pulseIcon }).addTo(leafletMap);
+          userLocationMarker.bindPopup(popupContent);
+
+          if (panTo) {
+            leafletMap.setView([lat, lon], Math.max(leafletMap.getZoom(), 15), { animate: true });
+            userLocationMarker.openPopup();
+          }
+
+          if (coordDisp) {
+            coordDisp.innerHTML = '🎯 <strong>Vị trí của bạn:</strong> ' + lat.toFixed(6) + '°N, ' + lon.toFixed(6) + '°E (VN2000: X=<code>' + (vnX?vnX.toFixed(1):'-') + '</code>, Y=<code>' + (vnY?vnY.toFixed(1):'-') + '</code>) ±' + Math.round(accuracy) + 'm';
+          }
+        },
+        err => {
+          isLocating = false;
+          if (topBtn) topBtn.classList.remove('locating');
+          if (panTo) {
+            let msg = 'Không thể lấy tín hiệu GPS.';
+            if (err.code === 1) {
+              msg = 'Bạn đã từ chối quyền truy cập Vị trí. Hãy bật Cho phép vị trí (Location permission) trong cài đặt thiết bị / trình duyệt.';
+            } else if (err.code === 2) {
+              msg = 'Tín hiệu GPS yếu hoặc chưa sẵn sàng. Vui lòng di chuyển ra nơi thoáng đãng ngoài tán rừng dày đặc.';
+            } else if (err.code === 3) {
+              msg = 'Hết thời gian chờ phản hồi GPS vệ tinh.';
+            }
+            alert('⚠️ ' + msg);
+          }
+          if (coordDisp && panTo) {
+            coordDisp.innerHTML = '⚠️ Không có tín hiệu GPS. Hãy chạm trực tiếp lên bản đồ để chọn vị trí.';
+          }
+        },
+        { enableHighAccuracy: true, timeout: 20000, maximumAge: 5000 }
+      );
+    }
+
     async function initMap() {
       if (leafletMap) {
         leafletMap.invalidateSize();
@@ -1320,15 +1447,35 @@
       };
       legend.addTo(leafletMap);
 
+      // Nút điều khiển Vị trí của tôi (GPS) trên Leaflet Control
+      const locateControl = L.control({ position: 'topleft' });
+      locateControl.onAdd = () => {
+        const div = L.DomUtil.create('div', 'leaflet-bar');
+        const a = L.DomUtil.create('a', 'leaflet-control-locate', div);
+        a.href = '#';
+        a.title = 'Vị trí của tôi (GPS)';
+        a.role = 'button';
+        a.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#1976d2" stroke-width="2.2">' +
+          '<circle cx="12" cy="12" r="8"/>' +
+          '<line x1="12" y1="2" x2="12" y2="5"/>' +
+          '<line x1="12" y1="19" x2="12" y2="22"/>' +
+          '<line x1="2" y1="12" x2="5" y2="12"/>' +
+          '<line x1="19" y1="12" x2="22" y2="12"/>' +
+          '<circle cx="12" cy="12" r="3" fill="#1976d2"/>' +
+        '</svg>';
+        L.DomEvent.disableClickPropagation(div);
+        L.DomEvent.on(a, 'click', e => {
+          L.DomEvent.preventDefault(e);
+          locateUser(true);
+        });
+        return div;
+      };
+      locateControl.addTo(leafletMap);
+
       markersLayer = L.layerGroup().addTo(leafletMap);
 
-      // Định vị GPS hiện tại
-      leafletMap.locate({ setView: false, maxZoom: 14, enableHighAccuracy: true });
-      leafletMap.on('locationfound', e => {
-        L.circleMarker(e.latlng, { radius: 8, color: '#1565c0', fillColor: '#42a5f5', fillOpacity: 0.8, weight: 2 })
-          .addTo(leafletMap)
-          .bindPopup('Vị trí của bạn<br>Sai số: ~' + Math.round(e.accuracy) + 'm');
-      });
+      // Tự động cập nhật vị trí GPS ngầm lần đầu
+      locateUser(false);
 
       loadMapMarkers();
     }

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yokdon-biolog-v4';
+const CACHE_NAME = 'yokdon-biolog-v6';
 const ASSETS = [
   './',
   './index.html',

@@ -12,10 +12,12 @@
       "type": "Feature",
       "properties": {
         "Ten": "Hạt Kiểm lâm VQG Yok Đôn (Trụ sở)",
-        "Loai": "Trạm Kiểm lâm",
-        "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
-        "Xa": "Xã Krông Na",
-        "Huyen": "Buôn Đôn",
+        "Loai": "Trụ sở Hạt Kiểm lâm",
+        "QuanLy": "Vườn quốc gia Yok Đôn",
+        "DiaGioiHC": "Xã Krông Na, Huyện Buôn Đôn",
+        "DanhSachTK": "Khu Hành chính - Dịch vụ (Trụ sở chính VQG Yok Đôn)",
+        "DienTichHa": 0,
+        "ViTriMoTa": "Trụ sở Hạt Kiểm lâm và Ban Quản lý Vườn quốc gia Yok Đôn, km 38 Tỉnh lộ 1",
         "VN2000_X": 411457.9,
         "VN2000_Y": 1430425.6,
         "WGS84_Lon": 107.683987,
@@ -33,10 +35,12 @@
       "type": "Feature",
       "properties": {
         "Ten": "Trạm Kiểm lâm cơ động và PCCCR",
-        "Loai": "Trạm Kiểm lâm",
+        "Loai": "Trạm Kiểm lâm trực thuộc",
         "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
-        "Xa": "Xã Krông Na",
-        "Huyen": "Buôn Đôn",
+        "DiaGioiHC": "Xã Krông Na, Huyện Buôn Đôn",
+        "DanhSachTK": "Cơ động tuần tra và PCCCR toàn lâm phần VQG (115.541 ha)",
+        "DienTichHa": 115541.0,
+        "ViTriMoTa": "Đóng quân tại khuôn viên Hạt Kiểm lâm VQG Yok Đôn, thường trực ứng phó cứu hộ và chữa cháy rừng",
         "VN2000_X": 411513.3,
         "VN2000_Y": 1430351.8,
         "WGS84_Lon": 107.6845,
@@ -54,20 +58,22 @@
       "type": "Feature",
       "properties": {
         "Ten": "Trạm Kiểm lâm số 01",
-        "Loai": "Trạm Kiểm lâm",
+        "Loai": "Trạm Kiểm lâm trực thuộc",
         "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
-        "Xa": "Xã Krông Na",
-        "Huyen": "Buôn Đôn",
-        "VN2000_X": 411589.0,
-        "VN2000_Y": 1430274.1,
-        "WGS84_Lon": 107.6852,
-        "WGS84_Lat": 12.9328
+        "DiaGioiHC": "Xã Buôn Đôn, Huyện Buôn Đôn",
+        "DanhSachTK": "TK 511, 520, 521, 524, 526",
+        "DienTichHa": 4521.94,
+        "ViTriMoTa": "Cửa ngõ phía Đông Nam VQG, giáp ranh xã Ea Wer, kiểm soát tuyến Tỉnh lộ 1 vào Vườn",
+        "VN2000_X": 421670.5,
+        "VN2000_Y": 1414999.5,
+        "WGS84_Lon": 107.7785,
+        "WGS84_Lat": 12.795
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          107.6852,
-          12.9328
+          107.7785,
+          12.795
         ]
       }
     },
@@ -75,20 +81,22 @@
       "type": "Feature",
       "properties": {
         "Ten": "Trạm Kiểm lâm số 02",
-        "Loai": "Trạm Kiểm lâm",
+        "Loai": "Trạm Kiểm lâm trực thuộc",
         "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
-        "Xa": "Xã Ea Huar",
-        "Huyen": "Buôn Đôn",
-        "VN2000_X": 416274.9,
-        "VN2000_Y": 1426033.6,
-        "WGS84_Lon": 107.7285,
-        "WGS84_Lat": 12.8946
+        "DiaGioiHC": "Xã Ea Huar, Huyện Buôn Đôn",
+        "DanhSachTK": "TK 501, 502, 503, 507, 511",
+        "DienTichHa": 4365.56,
+        "ViTriMoTa": "Phía Nam VQG, tiếp giáp xã Ea Huar, kiểm soát khu vực giáp ranh Trạm 01 và Trạm 05",
+        "VN2000_X": 421633.8,
+        "VN2000_Y": 1421305.3,
+        "WGS84_Lon": 107.778,
+        "WGS84_Lat": 12.852
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          107.7285,
-          12.8946
+          107.778,
+          12.852
         ]
       }
     },
@@ -96,20 +104,22 @@
       "type": "Feature",
       "properties": {
         "Ten": "Trạm Kiểm lâm số 03",
-        "Loai": "Trạm Kiểm lâm",
+        "Loai": "Trạm Kiểm lâm trực thuộc",
         "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
-        "Xa": "Xã Krông Na",
-        "Huyen": "Buôn Đôn",
-        "VN2000_X": 408013.9,
-        "VN2000_Y": 1435308.4,
-        "WGS84_Lon": 107.6521,
-        "WGS84_Lat": 12.9782
+        "DiaGioiHC": "Xã Krông Na, Huyện Buôn Đôn",
+        "DanhSachTK": "TK 485, 484, 477, 499, 508",
+        "DienTichHa": 5310.85,
+        "ViTriMoTa": "Tuyến đường tuần tra phía Đông suối Cây Hong / Đắk Na, giáp Trạm Đắk Na và Trạm 05",
+        "VN2000_X": 416976.2,
+        "VN2000_Y": 1424637.6,
+        "WGS84_Lon": 107.735,
+        "WGS84_Lat": 12.882
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          107.6521,
-          12.9782
+          107.735,
+          12.882
         ]
       }
     },
@@ -117,20 +127,22 @@
       "type": "Feature",
       "properties": {
         "Ten": "Trạm Kiểm lâm số 04",
-        "Loai": "Trạm Kiểm lâm",
+        "Loai": "Trạm Kiểm lâm trực thuộc",
         "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
-        "Xa": "Vùng lõi Yok Đôn",
-        "Huyen": "Buôn Đôn",
-        "VN2000_X": 401836.5,
-        "VN2000_Y": 1428038.9,
-        "WGS84_Lon": 107.5954,
-        "WGS84_Lat": 12.9123
+        "DiaGioiHC": "Vùng lõi Buôn Đôn, Huyện Buôn Đôn",
+        "DanhSachTK": "TK 446, 461, 465, 472, 475",
+        "DienTichHa": 6504.0,
+        "ViTriMoTa": "Vùng lõi Phân khu BVNN, nằm giữa lưu vực sông Sêrêpôk, Trạm Đrăng Phốk và Trạm Đắk Na",
+        "VN2000_X": 403215.3,
+        "VN2000_Y": 1431319.9,
+        "WGS84_Lon": 107.608,
+        "WGS84_Lat": 12.942
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          107.5954,
-          12.9123
+          107.608,
+          12.942
         ]
       }
     },
@@ -138,20 +150,22 @@
       "type": "Feature",
       "properties": {
         "Ten": "Trạm Kiểm lâm số 05",
-        "Loai": "Trạm Kiểm lâm",
+        "Loai": "Trạm Kiểm lâm trực thuộc",
         "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
-        "Xa": "Xã Cư M'lan",
-        "Huyen": "Ea Súp",
-        "VN2000_X": 414592.7,
-        "VN2000_Y": 1447113.7,
-        "WGS84_Lon": 107.7124,
-        "WGS84_Lat": 13.0851
+        "DiaGioiHC": "Xã Buôn Đôn, Huyện Buôn Đôn",
+        "DanhSachTK": "TK 522, 523, 508, 514, 515, 507, 504",
+        "DienTichHa": 5633.21,
+        "ViTriMoTa": "Phía Nam - Tây Nam Buôn Đôn, giáp ranh Trạm 02, Trạm 03 và Trạm 10 (Cư Jút)",
+        "VN2000_X": 412941.8,
+        "VN2000_Y": 1418675.9,
+        "WGS84_Lon": 107.698,
+        "WGS84_Lat": 12.828
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          107.7124,
-          13.0851
+          107.698,
+          12.828
         ]
       }
     },
@@ -159,20 +173,22 @@
       "type": "Feature",
       "properties": {
         "Ten": "Trạm Kiểm lâm số 06",
-        "Loai": "Trạm Kiểm lâm",
+        "Loai": "Trạm Kiểm lâm trực thuộc",
         "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
-        "Xa": "Xã Ea Bung",
-        "Huyen": "Ea Súp",
-        "VN2000_X": 404064.5,
-        "VN2000_Y": 1450832.6,
-        "WGS84_Lon": 107.6152,
-        "WGS84_Lat": 13.1184
+        "DiaGioiHC": "Huyện Buôn Đôn",
+        "DanhSachTK": "TK 456, 463, 470, 471, 443, 447, 452",
+        "DienTichHa": 5395.43,
+        "ViTriMoTa": "Tuyến tuần tra phía Đông Bắc Buôn Đôn, giáp ranh Trạm 07, Trạm 11, Trạm 12",
+        "VN2000_X": 419491.7,
+        "VN2000_Y": 1431267.9,
+        "WGS84_Lon": 107.758,
+        "WGS84_Lat": 12.942
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          107.6152,
-          13.1184
+          107.758,
+          12.942
         ]
       }
     },
@@ -180,20 +196,22 @@
       "type": "Feature",
       "properties": {
         "Ten": "Trạm Kiểm lâm số 07",
-        "Loai": "Trạm Kiểm lâm",
+        "Loai": "Trạm Kiểm lâm trực thuộc",
         "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
-        "Xa": "Xã Yang Lành",
-        "Huyen": "Buôn Đôn",
-        "VN2000_X": 417762.3,
-        "VN2000_Y": 1422544.4,
-        "WGS84_Lon": 107.7423,
-        "WGS84_Lat": 12.8631
+        "DiaGioiHC": "Huyện Ea Súp",
+        "DanhSachTK": "TK 280, 281, 286, 287, 290, 291, 435, 438, 443, 426",
+        "DienTichHa": 5915.05,
+        "ViTriMoTa": "Huyện Ea Súp, có Chốt Km 8 trên trục tuần tra kiểm soát rừng khộp",
+        "VN2000_X": 419184.2,
+        "VN2000_Y": 1437464.0,
+        "WGS84_Lon": 107.755,
+        "WGS84_Lat": 12.998
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          107.7423,
-          12.8631
+          107.755,
+          12.998
         ]
       }
     },
@@ -201,20 +219,22 @@
       "type": "Feature",
       "properties": {
         "Ten": "Trạm Kiểm lâm số 08",
-        "Loai": "Trạm Kiểm lâm",
+        "Loai": "Trạm Kiểm lâm trực thuộc",
         "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
-        "Xa": "Tiểu khu 412",
-        "Huyen": "Ea Súp",
-        "VN2000_X": 396760.7,
-        "VN2000_Y": 1440570.1,
-        "WGS84_Lon": 107.5482,
-        "WGS84_Lat": 13.0254
+        "DiaGioiHC": "Xã Ea Bung, Huyện Ea Súp",
+        "DanhSachTK": "TK 217, 227, 235, 236, 237, 245, 250, 253, 254, 408, 409",
+        "DienTichHa": 8932.5,
+        "ViTriMoTa": "Cực Bắc VQG Yok Đôn (xã Ea Bung), giáp tuyến tuần tra biên giới Campuchia",
+        "VN2000_X": 397205.9,
+        "VN2000_Y": 1449375.0,
+        "WGS84_Lon": 107.552,
+        "WGS84_Lat": 13.105
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          107.5482,
-          13.0254
+          107.552,
+          13.105
         ]
       }
     },
@@ -222,20 +242,22 @@
       "type": "Feature",
       "properties": {
         "Ten": "Trạm Kiểm lâm số 09",
-        "Loai": "Trạm Kiểm lâm",
+        "Loai": "Trạm Kiểm lâm trực thuộc",
         "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
-        "Xa": "Xã Đắk Wil",
-        "Huyen": "Cư Jút",
-        "VN2000_X": 399598.8,
-        "VN2000_Y": 1418421.8,
-        "WGS84_Lon": 107.5751,
-        "WGS84_Lat": 12.8253
+        "DiaGioiHC": "Huyện Buôn Đôn",
+        "DanhSachTK": "TK 412, 413, 415, 416, 417, 419, 420, 421, 422, 423, 424, 428, 430, 431, 432, 433, 410",
+        "DienTichHa": 13187.78,
+        "ViTriMoTa": "Dải rừng phía Tây Bắc Buôn Đôn, tiếp giáp Trạm 08, Trạm Đắk Ruê, Trạm Sê Rê Pôk",
+        "VN2000_X": 399670.6,
+        "VN2000_Y": 1441289.5,
+        "WGS84_Lon": 107.575,
+        "WGS84_Lat": 13.032
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          107.5751,
-          12.8253
+          107.575,
+          13.032
         ]
       }
     },
@@ -243,20 +265,22 @@
       "type": "Feature",
       "properties": {
         "Ten": "Trạm Kiểm lâm số 10",
-        "Loai": "Trạm Kiểm lâm",
+        "Loai": "Trạm Kiểm lâm trực thuộc",
         "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
-        "Xa": "Tiểu khu 435",
-        "Huyen": "Cư Jút",
-        "VN2000_X": 394988.1,
-        "VN2000_Y": 1425065.7,
-        "WGS84_Lon": 107.5324,
-        "WGS84_Lat": 12.8852
+        "DiaGioiHC": "Xã Đắk Wil, Huyện Cư Jút & Huyện Buôn Đôn",
+        "DanhSachTK": "TK 830, 476, 482, 490, 491, 497, 505, 506, 512, 516, 517, 518, 827, 828, 829, 836, 504, 464",
+        "DienTichHa": 15617.96,
+        "ViTriMoTa": "Phía Tây Nam VQG Yok Đôn (Đắk Wil, Cư Jút), phụ trách khu vực giáp Đồn Biên phòng 751",
+        "VN2000_X": 399917.5,
+        "VN2000_Y": 1419493.8,
+        "WGS84_Lon": 107.578,
+        "WGS84_Lat": 12.835
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          107.5324,
-          12.8852
+          107.578,
+          12.835
         ]
       }
     },
@@ -264,20 +288,22 @@
       "type": "Feature",
       "properties": {
         "Ten": "Trạm Kiểm lâm số 11",
-        "Loai": "Trạm Kiểm lâm",
+        "Loai": "Trạm Kiểm lâm trực thuộc",
         "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
-        "Xa": "Tuyến Tỉnh lộ",
-        "Huyen": "Buôn Đôn",
-        "VN2000_X": 412713.8,
-        "VN2000_Y": 1439386.5,
-        "WGS84_Lon": 107.6953,
-        "WGS84_Lat": 13.0152
+        "DiaGioiHC": "Ea Súp & Buôn Đôn",
+        "DanhSachTK": "TK 276, 418, 429, 426, 414",
+        "DienTichHa": 4177.31,
+        "ViTriMoTa": "Khu vực giao ranh giữa huyện Ea Súp và Buôn Đôn, giáp Trạm 06, 07, 09, Đrăng Phốk",
+        "VN2000_X": 413012.5,
+        "VN2000_Y": 1441244.2,
+        "WGS84_Lon": 107.698,
+        "WGS84_Lat": 13.032
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          107.6953,
-          13.0152
+          107.698,
+          13.032
         ]
       }
     },
@@ -285,20 +311,22 @@
       "type": "Feature",
       "properties": {
         "Ten": "Trạm Kiểm lâm số 12",
-        "Loai": "Trạm Kiểm lâm",
+        "Loai": "Trạm Kiểm lâm trực thuộc",
         "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
-        "Xa": "Xã Krông Na",
-        "Huyen": "Buôn Đôn",
-        "VN2000_X": 422431.8,
-        "VN2000_Y": 1427210.5,
-        "WGS84_Lon": 107.7852,
-        "WGS84_Lat": 12.9054
+        "DiaGioiHC": "Huyện Buôn Đôn",
+        "DanhSachTK": "TK 448, 437, 447, 452",
+        "DienTichHa": 3156.21,
+        "ViTriMoTa": "Cửa ngõ Đông Bắc VQG, giáp ranh Trạm 06 và Trạm 07",
+        "VN2000_X": 422429.4,
+        "VN2000_Y": 1434135.8,
+        "WGS84_Lon": 107.785,
+        "WGS84_Lat": 12.968
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          107.7852,
-          12.9054
+          107.785,
+          12.968
         ]
       }
     },
@@ -306,20 +334,22 @@
       "type": "Feature",
       "properties": {
         "Ten": "Trạm Kiểm lâm Đắk Ruê",
-        "Loai": "Trạm Kiểm lâm",
+        "Loai": "Trạm Kiểm lâm trực thuộc",
         "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
-        "Xa": "Xã Ea Bung",
-        "Huyen": "Ea Súp",
-        "VN2000_X": 392846.2,
-        "VN2000_Y": 1443749.2,
-        "WGS84_Lon": 107.512,
-        "WGS84_Lat": 13.054
+        "DiaGioiHC": "Xã Ea Bung, Ea Súp & Buôn Đôn",
+        "DanhSachTK": "TK 239, 251, 257, 267, 258, 411, 238, 256, 410, 255, 243",
+        "DienTichHa": 5950.7,
+        "ViTriMoTa": "Lưu vực suối Đắk Ruê, kiểm soát vùng đệm và ranh giới phía Bắc",
+        "VN2000_X": 406521.6,
+        "VN2000_Y": 1446354.5,
+        "WGS84_Lon": 107.638,
+        "WGS84_Lat": 13.078
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          107.512,
-          13.054
+          107.638,
+          13.078
         ]
       }
     },
@@ -327,62 +357,68 @@
       "type": "Feature",
       "properties": {
         "Ten": "Trạm Kiểm lâm Đắk Na",
-        "Loai": "Trạm Kiểm lâm",
+        "Loai": "Trạm Kiểm lâm trực thuộc",
         "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
-        "Xa": "Tiểu khu 408",
-        "Huyen": "Ea Súp",
-        "VN2000_X": 396760.7,
-        "VN2000_Y": 1440570.1,
-        "WGS84_Lon": 107.5482,
-        "WGS84_Lat": 13.0254
+        "DiaGioiHC": "Huyện Buôn Đôn",
+        "DanhSachTK": "TK 473, 474, 483, 492, 496, 489, 493, 466, 504, 477",
+        "DienTichHa": 10628.57,
+        "ViTriMoTa": "Lưu vực suối Đắk Na, giáp ranh Trạm 03, Trạm 04, Trạm 10 và Trạm Sê Rê Pôk",
+        "VN2000_X": 406124.9,
+        "VN2000_Y": 1425335.8,
+        "WGS84_Lon": 107.635,
+        "WGS84_Lat": 12.888
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          107.5482,
-          13.0254
+          107.635,
+          12.888
         ]
       }
     },
     {
       "type": "Feature",
       "properties": {
-        "Ten": "Trạm Kiểm lâm Đrang Phốk",
-        "Loai": "Trạm Kiểm lâm",
+        "Ten": "Trạm Kiểm lâm Đrăng Phốk",
+        "Loai": "Trạm Kiểm lâm trực thuộc",
         "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
-        "Xa": "Buôn Đrăng Phốk",
-        "Huyen": "Buôn Đôn",
-        "VN2000_X": 401836.5,
-        "VN2000_Y": 1428038.9,
-        "WGS84_Lon": 107.5954,
-        "WGS84_Lat": 12.9123
+        "DiaGioiHC": "Buôn Đrăng Phốk, Xã Krông Na, Huyện Buôn Đôn",
+        "DanhSachTK": "TK 458, 441, 442, 425, 434",
+        "DienTichHa": 5472.6,
+        "ViTriMoTa": "Trụ sở đặt tại buôn Đrăng Phốk - buôn làng sinh sống trong vùng lõi VQG Yok Đôn",
+        "VN2000_X": 410608.3,
+        "VN2000_Y": 1435720.3,
+        "WGS84_Lon": 107.676,
+        "WGS84_Lat": 12.982
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          107.5954,
-          12.9123
+          107.676,
+          12.982
         ]
       }
     },
     {
       "type": "Feature",
       "properties": {
-        "Ten": "Trạm Kiểm lâm Sêrêpốk",
-        "Loai": "Trạm Kiểm lâm",
+        "Ten": "Trạm Kiểm lâm Sê Rê Pôk",
+        "Loai": "Trạm Kiểm lâm trực thuộc",
         "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
-        "Xa": "Ven sông Sêrêpôk",
-        "Huyen": "Buôn Đôn",
-        "VN2000_X": 408013.9,
-        "VN2000_Y": 1435308.4,
-        "WGS84_Lon": 107.6521,
-        "WGS84_Lat": 12.9782
+        "DiaGioiHC": "Ven sông Sêrêpôk, Huyện Buôn Đôn",
+        "DanhSachTK": "TK 416, 420, 428, 430, 431, 432, 433, 445, 459, 451, 427, 449, 450, 457, 464",
+        "DienTichHa": 10771.33,
+        "ViTriMoTa": "Dọc hành lang sông Sêrêpôk, chốt chặn đường thủy và giáp Đồn Biên phòng 743",
+        "VN2000_X": 398238.4,
+        "VN2000_Y": 1435320.5,
+        "WGS84_Lon": 107.562,
+        "WGS84_Lat": 12.978
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          107.6521,
-          12.9782
+          107.562,
+          12.978
         ]
       }
     }
