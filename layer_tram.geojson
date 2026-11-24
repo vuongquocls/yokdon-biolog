@@ -1,0 +1,390 @@
+{
+  "type": "FeatureCollection",
+  "name": "layer_tram",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "urn:ogc:def:crs:OGC:1.3:CRS84"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "Ten": "Hạt Kiểm lâm VQG Yok Đôn (Trụ sở)",
+        "Loai": "Trạm Kiểm lâm",
+        "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
+        "Xa": "Xã Krông Na",
+        "Huyen": "Buôn Đôn",
+        "VN2000_X": 411457.9,
+        "VN2000_Y": 1430425.6,
+        "WGS84_Lon": 107.683987,
+        "WGS84_Lat": 12.934165
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.683987,
+          12.934165
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "Ten": "Trạm Kiểm lâm cơ động và PCCCR",
+        "Loai": "Trạm Kiểm lâm",
+        "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
+        "Xa": "Xã Krông Na",
+        "Huyen": "Buôn Đôn",
+        "VN2000_X": 411513.3,
+        "VN2000_Y": 1430351.8,
+        "WGS84_Lon": 107.6845,
+        "WGS84_Lat": 12.9335
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.6845,
+          12.9335
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "Ten": "Trạm Kiểm lâm số 01",
+        "Loai": "Trạm Kiểm lâm",
+        "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
+        "Xa": "Xã Krông Na",
+        "Huyen": "Buôn Đôn",
+        "VN2000_X": 411589.0,
+        "VN2000_Y": 1430274.1,
+        "WGS84_Lon": 107.6852,
+        "WGS84_Lat": 12.9328
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.6852,
+          12.9328
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "Ten": "Trạm Kiểm lâm số 02",
+        "Loai": "Trạm Kiểm lâm",
+        "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
+        "Xa": "Xã Ea Huar",
+        "Huyen": "Buôn Đôn",
+        "VN2000_X": 416274.9,
+        "VN2000_Y": 1426033.6,
+        "WGS84_Lon": 107.7285,
+        "WGS84_Lat": 12.8946
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.7285,
+          12.8946
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "Ten": "Trạm Kiểm lâm số 03",
+        "Loai": "Trạm Kiểm lâm",
+        "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
+        "Xa": "Xã Krông Na",
+        "Huyen": "Buôn Đôn",
+        "VN2000_X": 408013.9,
+        "VN2000_Y": 1435308.4,
+        "WGS84_Lon": 107.6521,
+        "WGS84_Lat": 12.9782
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.6521,
+          12.9782
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "Ten": "Trạm Kiểm lâm số 04",
+        "Loai": "Trạm Kiểm lâm",
+        "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
+        "Xa": "Vùng lõi Yok Đôn",
+        "Huyen": "Buôn Đôn",
+        "VN2000_X": 401836.5,
+        "VN2000_Y": 1428038.9,
+        "WGS84_Lon": 107.5954,
+        "WGS84_Lat": 12.9123
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.5954,
+          12.9123
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "Ten": "Trạm Kiểm lâm số 05",
+        "Loai": "Trạm Kiểm lâm",
+        "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
+        "Xa": "Xã Cư M'lan",
+        "Huyen": "Ea Súp",
+        "VN2000_X": 414592.7,
+        "VN2000_Y": 1447113.7,
+        "WGS84_Lon": 107.7124,
+        "WGS84_Lat": 13.0851
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.7124,
+          13.0851
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "Ten": "Trạm Kiểm lâm số 06",
+        "Loai": "Trạm Kiểm lâm",
+        "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
+        "Xa": "Xã Ea Bung",
+        "Huyen": "Ea Súp",
+        "VN2000_X": 404064.5,
+        "VN2000_Y": 1450832.6,
+        "WGS84_Lon": 107.6152,
+        "WGS84_Lat": 13.1184
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.6152,
+          13.1184
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "Ten": "Trạm Kiểm lâm số 07",
+        "Loai": "Trạm Kiểm lâm",
+        "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
+        "Xa": "Xã Yang Lành",
+        "Huyen": "Buôn Đôn",
+        "VN2000_X": 417762.3,
+        "VN2000_Y": 1422544.4,
+        "WGS84_Lon": 107.7423,
+        "WGS84_Lat": 12.8631
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.7423,
+          12.8631
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "Ten": "Trạm Kiểm lâm số 08",
+        "Loai": "Trạm Kiểm lâm",
+        "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
+        "Xa": "Tiểu khu 412",
+        "Huyen": "Ea Súp",
+        "VN2000_X": 396760.7,
+        "VN2000_Y": 1440570.1,
+        "WGS84_Lon": 107.5482,
+        "WGS84_Lat": 13.0254
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.5482,
+          13.0254
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "Ten": "Trạm Kiểm lâm số 09",
+        "Loai": "Trạm Kiểm lâm",
+        "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
+        "Xa": "Xã Đắk Wil",
+        "Huyen": "Cư Jút",
+        "VN2000_X": 399598.8,
+        "VN2000_Y": 1418421.8,
+        "WGS84_Lon": 107.5751,
+        "WGS84_Lat": 12.8253
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.5751,
+          12.8253
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "Ten": "Trạm Kiểm lâm số 10",
+        "Loai": "Trạm Kiểm lâm",
+        "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
+        "Xa": "Tiểu khu 435",
+        "Huyen": "Cư Jút",
+        "VN2000_X": 394988.1,
+        "VN2000_Y": 1425065.7,
+        "WGS84_Lon": 107.5324,
+        "WGS84_Lat": 12.8852
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.5324,
+          12.8852
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "Ten": "Trạm Kiểm lâm số 11",
+        "Loai": "Trạm Kiểm lâm",
+        "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
+        "Xa": "Tuyến Tỉnh lộ",
+        "Huyen": "Buôn Đôn",
+        "VN2000_X": 412713.8,
+        "VN2000_Y": 1439386.5,
+        "WGS84_Lon": 107.6953,
+        "WGS84_Lat": 13.0152
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.6953,
+          13.0152
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "Ten": "Trạm Kiểm lâm số 12",
+        "Loai": "Trạm Kiểm lâm",
+        "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
+        "Xa": "Xã Krông Na",
+        "Huyen": "Buôn Đôn",
+        "VN2000_X": 422431.8,
+        "VN2000_Y": 1427210.5,
+        "WGS84_Lon": 107.7852,
+        "WGS84_Lat": 12.9054
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.7852,
+          12.9054
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "Ten": "Trạm Kiểm lâm Đắk Ruê",
+        "Loai": "Trạm Kiểm lâm",
+        "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
+        "Xa": "Xã Ea Bung",
+        "Huyen": "Ea Súp",
+        "VN2000_X": 392846.2,
+        "VN2000_Y": 1443749.2,
+        "WGS84_Lon": 107.512,
+        "WGS84_Lat": 13.054
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.512,
+          13.054
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "Ten": "Trạm Kiểm lâm Đắk Na",
+        "Loai": "Trạm Kiểm lâm",
+        "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
+        "Xa": "Tiểu khu 408",
+        "Huyen": "Ea Súp",
+        "VN2000_X": 396760.7,
+        "VN2000_Y": 1440570.1,
+        "WGS84_Lon": 107.5482,
+        "WGS84_Lat": 13.0254
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.5482,
+          13.0254
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "Ten": "Trạm Kiểm lâm Đrang Phốk",
+        "Loai": "Trạm Kiểm lâm",
+        "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
+        "Xa": "Buôn Đrăng Phốk",
+        "Huyen": "Buôn Đôn",
+        "VN2000_X": 401836.5,
+        "VN2000_Y": 1428038.9,
+        "WGS84_Lon": 107.5954,
+        "WGS84_Lat": 12.9123
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.5954,
+          12.9123
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "Ten": "Trạm Kiểm lâm Sêrêpốk",
+        "Loai": "Trạm Kiểm lâm",
+        "QuanLy": "Hạt Kiểm lâm VQG Yok Đôn",
+        "Xa": "Ven sông Sêrêpôk",
+        "Huyen": "Buôn Đôn",
+        "VN2000_X": 408013.9,
+        "VN2000_Y": 1435308.4,
+        "WGS84_Lon": 107.6521,
+        "WGS84_Lat": 12.9782
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          107.6521,
+          12.9782
+        ]
+      }
+    }
+  ]
+}

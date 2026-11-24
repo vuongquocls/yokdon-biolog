@@ -1,11 +1,26 @@
-const CACHE_NAME = 'yokdon-biolog-v3';
+const CACHE_NAME = 'yokdon-biolog-v4';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './catalog.json',
   './icon.svg',
-  './yokdon-boundary.json'
+  './layer_vqg_ranh.geojson',
+  './layer_vqg_bo.geojson',
+  './layer_tram.geojson',
+  './layer_pkcn_bvnn.geojson',
+  './layer_pkcn_phst.geojson',
+  './layer_pkcn_dvhc.geojson',
+  './layer_tieukhu.geojson',
+  './layer_tieukhu_diem.geojson',
+  './layer_dtk.geojson',
+  './layer_song_srp.geojson',
+  './layer_ql14c.geojson',
+  './layer_giaothong.geojson',
+  './layer_biengioi_cpc.geojson',
+  './layer_hanhchinh.geojson',
+  './layer_hctext.geojson',
+  './layer_cql.geojson'
 ];
 
 // Leaflet CDN assets — cache on first use (runtime caching)
@@ -35,7 +50,7 @@ self.addEventListener('fetch', event => {
 
   const url = new URL(req.url);
 
-  // Cache-first for local assets
+  // Cache-first for local assets (GeoJSON layers, HTML, JSON, Icons)
   if (url.origin === self.location.origin) {
     event.respondWith(
       caches.match(req).then(cached => {

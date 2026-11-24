@@ -74,6 +74,30 @@
     .btn-camera svg { width: 18px; height: 18px; }
     #identifyResult { font-size: 13px; margin-top: 8px; padding: 10px 12px; border-radius: 8px; display: none; }
     #identifyResult.show { display: block; background: #e8f5e9; color: #1b5e20; }
+  
+    /* === VN-2000 Coordinate Box === */
+    .vn2000-box { background: #f1f8e9; border: 1.5px solid #a5d6a7; border-radius: 10px; padding: 12px; margin-top: 10px; }
+    .vn2000-badge { font-size: 11px; background: #2e7d32; color: #fff; padding: 2px 7px; border-radius: 4px; font-weight: 600; }
+
+    /* === Map Controls & Layers === */
+    .map-top-bar { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+    .map-search-row { display: flex; gap: 8px; }
+    .map-search-row input { flex: 1; padding: 9px 12px; font-size: 13px; border-radius: 8px; border: 1px solid var(--border); }
+    .map-search-row button { padding: 9px 14px; background: var(--primary); color: #fff; border: none; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; white-space: nowrap; }
+    
+    .layer-chips-scroll { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 6px; -webkit-overflow-scrolling: touch; }
+    .layer-chip { display: flex; align-items: center; gap: 5px; background: #fff; border: 1px solid var(--border); border-radius: 20px; padding: 5px 12px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.15s; user-select: none; }
+    .layer-chip.active { background: #e8f5e9; border-color: var(--primary); color: var(--primary); box-shadow: 0 1px 3px rgba(45,90,39,0.15); }
+    .layer-chip .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+    .coord-bar { background: rgba(255,255,255,0.96); backdrop-filter: blur(4px); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 12px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", monospace; display: flex; justify-content: space-between; align-items: center; margin-top: 6px; color: #37474f; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+    .coord-bar code { color: #1b5e20; font-weight: 700; background: #e8f5e9; padding: 1px 4px; border-radius: 3px; }
+
+    /* Custom Leaflet Map styling */
+    .leaflet-popup-content-wrapper { border-radius: 10px; font-family: inherit; }
+    .leaflet-popup-content { margin: 10px 12px; line-height: 1.45; font-size: 13px; }
+    .popup-btn-use { display: inline-block; width: 100%; text-align: center; margin-top: 8px; padding: 6px 10px; background: #2d5a27; color: #fff; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: none; border: none; }
+    .popup-btn-use:hover { background: #1b5e20; }
   </style>
 </head>
 <body>
@@ -196,15 +220,42 @@
         </div>
 
         <div class="card">
-          <div class="card-title">3. Vị trí GPS &amp; Sinh cảnh</div>
+          <div class="card-title">3. Vị trí GPS &amp; Sinh cảnh (Hệ VN-2000 &amp; WGS84)</div>
           <div class="row">
-            <div><input type="text" id="lat" placeholder="Vĩ độ (Lat)"></div>
-            <div><input type="text" id="lon" placeholder="Kinh độ (Lon)"></div>
+            <div>
+              <label style="font-size:12px; margin:0 0 3px;">Vĩ độ (Lat - WGS84):</label>
+              <input type="text" id="lat" placeholder="VD: 12.934165" oninput="onWgs84Input()">
+            </div>
+            <div>
+              <label style="font-size:12px; margin:0 0 3px;">Kinh độ (Lon - WGS84):</label>
+              <input type="text" id="lon" placeholder="VD: 107.683987" oninput="onWgs84Input()">
+            </div>
           </div>
-          <button type="button" class="btn btn-gps" onclick="getGPS()">Lấy tọa độ GPS hiện tại (dùng được khi mất sóng)</button>
 
-          <label>Địa điểm / Tiểu khu / Tuyến</label>
-          <input type="text" id="locationNote" placeholder="VD: Tiểu khu 421 - Bàu nước gần sông Sêrêpốk">
+          <div class="vn2000-box">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span style="font-weight:700; font-size:13px; color:#1b5e20;">📐 Tọa độ VN-2000 (Múi 3°, KTT 108°30\')</span>
+              <span class="vn2000-badge">Quy chuẩn Lâm nghiệp</span>
+            </div>
+            <div class="row">
+              <div>
+                <label style="font-size:11px; margin:0 0 2px;">Tọa độ X (Easting - mét):</label>
+                <input type="number" id="vn2000_x" placeholder="VD: 411458.0" step="0.1" oninput="onVn2000Input()">
+              </div>
+              <div>
+                <label style="font-size:11px; margin:0 0 2px;">Tọa độ Y (Northing - mét):</label>
+                <input type="number" id="vn2000_y" placeholder="VD: 1430426.0" step="0.1" oninput="onVn2000Input()">
+              </div>
+            </div>
+            <div class="hint" style="margin-top:6px; font-size:11px; color:#2e7d32; line-height:1.4;">
+              🔄 <strong>Đồng bộ 2 chiều:</strong> Nhập GPS WGS84 tự đổi sang VN-2000, hoặc nhập X/Y VN-2000 từ máy GPS Garmin / bản đồ lâm nghiệp sẽ tự đổi sang Lat/Lon.
+            </div>
+          </div>
+
+          <button type="button" class="btn btn-gps" onclick="getGPS()">📡 Lấy tọa độ GPS vệ tinh hiện tại</button>
+
+          <label>Địa điểm / Tiểu khu / Khoảnh / Lô / Tuyến</label>
+          <input type="text" id="locationNote" placeholder="VD: Tiểu khu 408 - Khoảnh 2 - Lô 5 gần sông Sêrêpốk">
 
           <div class="row">
             <div>
@@ -258,7 +309,21 @@
   <!-- ============ TAB 2: BẢN ĐỒ ============ -->
   <div id="tabMap" class="tab-panel">
     <div style="padding: 8px 12px;">
+      <div class="map-top-bar">
+        <div class="map-search-row">
+          <input type="text" id="mapSearchInput" placeholder="🔍 Tìm Tiểu khu (VD: 408), Trạm KL, Lô, Xã..." onkeypress="if(event.key==='Enter') searchMapLocation()">
+          <button type="button" onclick="searchMapLocation()">Tìm nhanh</button>
+        </div>
+        <div class="layer-chips-scroll" id="layerChipsContainer">
+          <!-- Rendered dynamically by initMap -->
+        </div>
+      </div>
+
       <div id="mapContainer"></div>
+
+      <div class="coord-bar" id="coordBar">
+        <span id="coordDisplay">📍 Chạm vào bản đồ hoặc di chuột để xem tọa độ WGS84 &amp; VN-2000</span>
+      </div>
     </div>
   </div>
 
@@ -479,17 +544,120 @@
       } catch (_) {}
     }
 
+    // ====================== CHUYỂN ĐỔI TỌA ĐỘ VN-2000 <-> WGS-84 ======================
+    // Quy chuẩn KTT 108°30' (108.5°E), Múi 3°, Hệ số k=0.9999, X0=500000m, Y0=0m (Áp dụng Đắk Lắk & VQG Yok Đôn)
+    function wgs84ToVn2000(lon, lat) {
+      if (isNaN(lon) || isNaN(lat) || lon === null || lat === null) return [null, null];
+      const a = 6378137.0;
+      const f = 1 / 298.257223563;
+      const e2 = 2 * f - f * f;
+      const k0 = 0.9999;
+      const x0 = 500000.0;
+      const y0 = 0.0;
+      const lon0 = 108.5 * Math.PI / 180.0;
+      
+      const phi = lat * Math.PI / 180.0;
+      const lam = lon * Math.PI / 180.0;
+      
+      const e_prime2 = e2 / (1.0 - e2);
+      const N = a / Math.sqrt(1.0 - e2 * Math.sin(phi) * Math.sin(phi));
+      const T = Math.tan(phi) * Math.tan(phi);
+      const C = e_prime2 * Math.cos(phi) * Math.cos(phi);
+      const A = (lam - lon0) * Math.cos(phi);
+      
+      const M = a * ((1 - e2/4 - 3*e2*e2/64 - 5*e2*e2*e2/256) * phi
+               - (3*e2/8 + 3*e2*e2/32 + 45*e2*e2*e2/1024) * Math.sin(2*phi)
+               + (15*e2*e2/256 + 45*e2*e2*e2/1024) * Math.sin(4*phi)
+               - (35*e2*e2*e2/3072) * Math.sin(6*phi));
+               
+      const x = x0 + k0 * N * (A + (1 - T + C) * Math.pow(A, 3) / 6.0 + (5 - 18*T + T*T + 72*C - 58*e_prime2) * Math.pow(A, 5) / 120.0);
+      const y = y0 + k0 * (M + N * Math.tan(phi) * (Math.pow(A, 2) / 2.0 + (5 - T + 9*C + 4*C*C) * Math.pow(A, 4) / 24.0 + (61 - 58*T + T*T + 600*C - 330*e_prime2) * Math.pow(A, 6) / 720.0));
+      return [Math.round(x * 10) / 10, Math.round(y * 10) / 10];
+    }
+
+    function vn2000ToWgs84(x, y) {
+      if (isNaN(x) || isNaN(y) || x === null || y === null) return [null, null];
+      const a = 6378137.0;
+      const f = 1 / 298.257223563;
+      const e2 = 2 * f - f * f;
+      const k0 = 0.9999;
+      const x0 = 500000.0;
+      const y0 = 0.0;
+      const lon0 = 108.5 * Math.PI / 180.0;
+
+      const e1 = (1 - Math.sqrt(1 - e2)) / (1 + Math.sqrt(1 - e2));
+      const M = (y - y0) / k0;
+      const mu = M / (a * (1 - e2/4 - 3*e2*e2/64 - 5*e2*e2*e2/256));
+
+      const phi1 = mu + (3*e1/2 - 27*Math.pow(e1, 3)/32) * Math.sin(2*mu)
+                      + (21*e1*e1/16 - 55*Math.pow(e1, 4)/32) * Math.sin(4*mu)
+                      + (151*Math.pow(e1, 3)/96) * Math.sin(6*mu)
+                      + (1097*Math.pow(e1, 4)/512) * Math.sin(8*mu);
+
+      const e_prime2 = e2 / (1.0 - e2);
+      const C1 = e_prime2 * Math.pow(Math.cos(phi1), 2);
+      const T1 = Math.pow(Math.tan(phi1), 2);
+      const N1 = a / Math.sqrt(1 - e2 * Math.pow(Math.sin(phi1), 2));
+      const R1 = a * (1 - e2) / Math.pow(1 - e2 * Math.pow(Math.sin(phi1), 2), 1.5);
+      const D = (x - x0) / (N1 * k0);
+
+      const lat = phi1 - (N1 * Math.tan(phi1) / R1) * (
+        Math.pow(D, 2) / 2
+        - (5 + 3*T1 + 10*C1 - 4*C1*C1 - 9*e_prime2) * Math.pow(D, 4) / 24
+        + (61 + 90*T1 + 298*C1 + 45*T1*T1 - 252*e_prime2 - 3*C1*C1) * Math.pow(D, 6) / 720
+      );
+
+      const lon = lon0 + (
+        D
+        - (1 + 2*T1 + C1) * Math.pow(D, 3) / 6
+        + (5 - 2*C1 + 28*T1 - 3*C1*C1 + 8*e_prime2 + 24*T1*T1) * Math.pow(D, 5) / 120
+      ) / Math.cos(phi1);
+
+      return [Math.round(lon * 180 / Math.PI * 1000000) / 1000000, Math.round(lat * 180 / Math.PI * 1000000) / 1000000];
+    }
+
+    function onWgs84Input() {
+      const lat = parseFloat(document.getElementById('lat').value);
+      const lon = parseFloat(document.getElementById('lon').value);
+      if (!isNaN(lat) && !isNaN(lon) && lat >= 10 && lat <= 20 && lon >= 100 && lon <= 115) {
+        const [x, y] = wgs84ToVn2000(lon, lat);
+        if (x && y) {
+          document.getElementById('vn2000_x').value = x.toFixed(1);
+          document.getElementById('vn2000_y').value = y.toFixed(1);
+        }
+      }
+    }
+
+    function onVn2000Input() {
+      const x = parseFloat(document.getElementById('vn2000_x').value);
+      const y = parseFloat(document.getElementById('vn2000_y').value);
+      if (!isNaN(x) && !isNaN(y) && x >= 300000 && x <= 700000 && y >= 1000000 && y <= 2000000) {
+        const [lon, lat] = vn2000ToWgs84(x, y);
+        if (lon && lat) {
+          document.getElementById('lon').value = lon.toFixed(6);
+          document.getElementById('lat').value = lat.toFixed(6);
+        }
+      }
+    }
+
     // ====================== GPS ======================
     function getGPS() {
       if (!navigator.geolocation) return showStatus('Thiết bị không hỗ trợ GPS.', 'err');
-      showStatus('Đang bắt tín hiệu vệ tinh GPS...', 'warn');
+      showStatus('Đang bắt tín hiệu vệ tinh GPS độ chính xác cao...', 'warn');
       navigator.geolocation.getCurrentPosition(
         pos => {
-          document.getElementById('lat').value = pos.coords.latitude.toFixed(6);
-          document.getElementById('lon').value = pos.coords.longitude.toFixed(6);
-          showStatus('Đã lấy GPS (sai số ~' + Math.round(pos.coords.accuracy) + 'm).', 'ok');
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          document.getElementById('lat').value = lat.toFixed(6);
+          document.getElementById('lon').value = lon.toFixed(6);
+          const [x, y] = wgs84ToVn2000(lon, lat);
+          if (x && y) {
+            document.getElementById('vn2000_x').value = x.toFixed(1);
+            document.getElementById('vn2000_y').value = y.toFixed(1);
+          }
+          showStatus('Đã lấy tọa độ GPS (sai số ~' + Math.round(pos.coords.accuracy) + 'm). Đã đồng bộ VN-2000!', 'ok');
         },
-        () => showStatus('Không bắt được GPS. Hãy bật định vị (Location) hoặc mô tả tiểu khu.', 'err'),
+        () => showStatus('Không bắt được GPS. Hãy bật định vị (Location) hoặc nhập tọa độ VN-2000 từ GPS cầm tay.', 'err'),
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
       );
     }
@@ -636,6 +804,8 @@
           countUnit: document.getElementById('countUnit').value,
           lat: document.getElementById('lat').value.trim(),
           lon: document.getElementById('lon').value.trim(),
+          vn2000_x: document.getElementById('vn2000_x') ? document.getElementById('vn2000_x').value.trim() : '',
+          vn2000_y: document.getElementById('vn2000_y') ? document.getElementById('vn2000_y').value.trim() : '',
           locationNote: document.getElementById('locationNote').value.trim(),
           habitat: document.getElementById('habitat').value,
           behavior: document.getElementById('behavior').value,
@@ -700,71 +870,464 @@
       document.getElementById('preview').innerHTML = '';
     }
 
-    // ====================== LEAFLET MAP ======================
-    function initMap() {
+    // ====================== LEAFLET MAP & LỚP GIS VQG YOK ĐÔN ======================
+    let mapLayers = {};
+    let searchFeatures = [];
+    let clickMarker = null;
+
+    const GIS_CONFIG = [
+      {
+        id: 'layer_vqg',
+        name: 'Ranh giới VQG Yok Đôn',
+        color: '#1b5e20',
+        defaultOn: true,
+        loader: async () => {
+          const group = L.layerGroup();
+          try {
+            const [r1, r2] = await Promise.all([
+              fetch('./layer_vqg_ranh.geojson').then(r => r.json()),
+              fetch('./layer_vqg_bo.geojson').then(r => r.json())
+            ]);
+            L.geoJSON(r1, {
+              style: { color: '#1b5e20', weight: 2.5, fillColor: '#2e7d32', fillOpacity: 0.08, dashArray: '6, 4' },
+              onEachFeature: (f, l) => l.bindPopup('<strong>Vườn Quốc Gia Yok Đôn</strong><br>Diện tích: 115.545 ha<br>Chủ quản lý: VQG Yok Đôn')
+            }).addTo(group);
+            L.geoJSON(r2, {
+              style: { color: '#1b5e20', weight: 3 }
+            }).addTo(group);
+          } catch(e) { console.warn('Lỗi tải ranh giới VQG:', e); }
+          return group;
+        }
+      },
+      {
+        id: 'layer_tram',
+        name: '18 Trạm & Đội Kiểm lâm',
+        color: '#d32f2f',
+        defaultOn: true,
+        loader: async () => {
+          const group = L.layerGroup();
+          try {
+            const data = await fetch('./layer_tram.geojson').then(r => r.json());
+            L.geoJSON(data, {
+              pointToLayer: (f, latlng) => {
+                const p = f.properties;
+                searchFeatures.push({ name: p.Ten, type: 'Trạm Kiểm lâm', latlng: latlng, props: p });
+                return L.circleMarker(latlng, {
+                  radius: 7,
+                  fillColor: '#d32f2f',
+                  color: '#ffffff',
+                  weight: 2,
+                  fillOpacity: 0.95
+                });
+              },
+              onEachFeature: (f, l) => {
+                const p = f.properties;
+                l.bindPopup(
+                  '<div style="font-size:13px; line-height:1.5;">' +
+                  '<strong style="color:#d32f2f; font-size:14px;">🚩 ' + p.Ten + '</strong><br>' +
+                  '<strong>Quản lý:</strong> ' + p.QuanLy + '<br>' +
+                  '<strong>Địa bàn:</strong> ' + p.Xa + ', ' + p.Huyen + '<br>' +
+                  '<hr style="margin:5px 0; border:none; border-top:1px solid #ddd;">' +
+                  '<strong>VN-2000 (KTT 108°30\'):</strong><br>' +
+                  'X = <code>' + p.VN2000_X + '</code> m | Y = <code>' + p.VN2000_Y + '</code> m<br>' +
+                  '<strong>WGS-84:</strong> ' + p.WGS84_Lat + '°N, ' + p.WGS84_Lon + '°E<br>' +
+                  '<button class="popup-btn-use" onclick="useMapCoordinate(' + p.WGS84_Lat + ',' + p.WGS84_Lon + ',' + p.VN2000_X + ',' + p.VN2000_Y + ')">📍 Dùng tọa độ trạm này</button>' +
+                  '</div>'
+                );
+              }
+            }).addTo(group);
+          } catch(e) { console.warn('Lỗi tải trạm kiểm lâm:', e); }
+          return group;
+        }
+      },
+      {
+        id: 'layer_phankhu',
+        name: 'Phân khu chức năng (BVNN/PHST/DVHC)',
+        color: '#e65100',
+        defaultOn: true,
+        loader: async () => {
+          const group = L.layerGroup();
+          try {
+            const [bvnn, phst, dvhc] = await Promise.all([
+              fetch('./layer_pkcn_bvnn.geojson').then(r => r.json()).catch(()=>null),
+              fetch('./layer_pkcn_phst.geojson').then(r => r.json()).catch(()=>null),
+              fetch('./layer_pkcn_dvhc.geojson').then(r => r.json()).catch(()=>null)
+            ]);
+            if (bvnn) L.geoJSON(bvnn, {
+              style: { color: '#b71c1c', weight: 2, fillColor: '#c62828', fillOpacity: 0.15 },
+              onEachFeature: (f, l) => l.bindPopup('<strong>Phân khu Bảo vệ Nghiêm ngặt (BVNN)</strong><br>Quy chế: Bảo tồn nguyên vẹn hệ sinh thái rừng khộp và động thực vật hoang dã.')
+            }).addTo(group);
+            if (phst) L.geoJSON(phst, {
+              style: { color: '#f57f17', weight: 2, fillColor: '#fbc02d', fillOpacity: 0.15 },
+              onEachFeature: (f, l) => l.bindPopup('<strong>Phân khu Phục hồi Sinh thái (PHST)</strong><br>Quy chế: Phục hồi cấu trúc rừng, xúc tiến tái sinh tự nhiên.')
+            }).addTo(group);
+            if (dvhc) L.geoJSON(dvhc, {
+              style: { color: '#0288d1', weight: 2, fillColor: '#29b6f6', fillOpacity: 0.2 },
+              onEachFeature: (f, l) => l.bindPopup('<strong>Phân khu Dịch vụ Hành chính (DVHC)</strong><br>Khu trung tâm quản lý, dịch vụ du lịch sinh thái và giáo dục môi trường.')
+            }).addTo(group);
+          } catch(e) { console.warn('Lỗi tải phân khu:', e); }
+          return group;
+        }
+      },
+      {
+        id: 'layer_tieukhu',
+        name: 'Ranh giới Tiểu khu',
+        color: '#8d6e63',
+        defaultOn: true,
+        loader: async () => {
+          const group = L.layerGroup();
+          try {
+            const data = await fetch('./layer_tieukhu.geojson').then(r => r.json());
+            L.geoJSON(data, {
+              style: { color: '#8d6e63', weight: 1.8, dashArray: '5, 3', opacity: 0.95 },
+              onEachFeature: (f, l) => l.bindPopup('<strong>Ranh giới Tiểu khu lâm nghiệp</strong>')
+            }).addTo(group);
+          } catch(e) { console.warn('Lỗi tải ranh giới tiểu khu:', e); }
+          return group;
+        }
+      },
+      {
+        id: 'layer_tieukhu_nhan',
+        name: 'Nhãn 218 Tiểu khu (TK 408...)',
+        color: '#1565c0',
+        defaultOn: false,
+        loader: async () => {
+          const group = L.layerGroup();
+          try {
+            const data = await fetch('./layer_tieukhu_diem.geojson').then(r => r.json());
+            L.geoJSON(data, {
+              pointToLayer: (f, latlng) => {
+                const ma = f.properties.Ma || '';
+                searchFeatures.push({ name: 'Tiểu khu ' + ma, type: 'Tiểu khu', latlng: latlng, props: f.properties });
+                return L.circleMarker(latlng, {
+                  radius: 5,
+                  fillColor: '#1976d2',
+                  color: '#fff',
+                  weight: 1.5,
+                  fillOpacity: 0.85
+                });
+              },
+              onEachFeature: (f, l) => {
+                const ma = f.properties.Ma || '';
+                l.bindPopup('<strong>Tiểu khu ' + ma + '</strong><br>Vị trí trung tâm tiểu khu');
+              }
+            }).addTo(group);
+          } catch(e) { console.warn('Lỗi tải nhãn tiểu khu:', e); }
+          return group;
+        }
+      },
+      {
+        id: 'layer_dtk',
+        name: 'Lô & Khoảnh (973 Lô - DTK)',
+        color: '#2e7d32',
+        defaultOn: false,
+        loader: async () => {
+          const group = L.layerGroup();
+          try {
+            const data = await fetch('./layer_dtk.geojson').then(r => r.json());
+            L.geoJSON(data, {
+              style: { color: '#37474f', weight: 0.8, fillColor: '#81c784', fillOpacity: 0.16 },
+              onEachFeature: (f, l) => {
+                const p = f.properties;
+                searchFeatures.push({ name: 'Lô ' + p.lo + ' Khoảnh ' + p.Khoanh + ' TK ' + p.TK, type: 'Lô Khoảnh', latlng: l.getBounds ? l.getBounds().getCenter() : null, props: p });
+                l.bindPopup(
+                  '<div style="font-size:12px; line-height:1.45;">' +
+                  '<strong style="color:#2e7d32; font-size:13px;">Lô ' + (p.lo||'-') + ' - Khoảnh ' + (p.Khoanh||'-') + ' - TK ' + (p.TK||'-') + '</strong><br>' +
+                  '<strong>Diện tích:</strong> ' + (p.Dtich ? p.Dtich + ' ha' : '-') + '<br>' +
+                  '<strong>Loại rừng (LDLR):</strong> ' + (p.ldlr || 'Rừng khộp / TXN') + '<br>' +
+                  '<strong>Mục đích:</strong> ' + (p.mdsd || 'Rừng đặc dụng VQG') + '<br>' +
+                  '<strong>Địa phận:</strong> ' + (p.Xa || '') + ', ' + (p.Huyen || '') + '<br>' +
+                  '<strong>Chủ rừng:</strong> ' + (p.CHURUNG || 'VQG YokDon') +
+                  '</div>'
+                );
+              }
+            }).addTo(group);
+          } catch(e) { console.warn('Lỗi tải lô khoảnh DTK:', e); }
+          return group;
+        }
+      },
+      {
+        id: 'layer_song',
+        name: 'Sông Sêrêpôk & Thủy văn',
+        color: '#0288d1',
+        defaultOn: true,
+        loader: async () => {
+          const group = L.layerGroup();
+          try {
+            const data = await fetch('./layer_song_srp.geojson').then(r => r.json());
+            L.geoJSON(data, {
+              style: { color: '#0288d1', weight: 3, opacity: 0.95 },
+              onEachFeature: (f, l) => l.bindPopup('<strong>Sông Sêrêpôk</strong><br>Dòng sông huyết mạch chảy qua VQG Yok Đôn')
+            }).addTo(group);
+          } catch(e) { console.warn('Lỗi tải sông SRP:', e); }
+          return group;
+        }
+      },
+      {
+        id: 'layer_giaothong',
+        name: 'QL14C & Đường tuần tra',
+        color: '#ef6c00',
+        defaultOn: true,
+        loader: async () => {
+          const group = L.layerGroup();
+          try {
+            const [ql, gt] = await Promise.all([
+              fetch('./layer_ql14c.geojson').then(r => r.json()).catch(()=>null),
+              fetch('./layer_giaothong.geojson').then(r => r.json()).catch(()=>null)
+            ]);
+            if (ql) L.geoJSON(ql, {
+              style: { color: '#d84315', weight: 3.5, opacity: 0.9 },
+              onEachFeature: (f, l) => l.bindPopup('<strong>Quốc lộ 14C</strong><br>Tuyến đường vành đai phía Tây VQG')
+            }).addTo(group);
+            if (gt) L.geoJSON(gt, {
+              style: { color: '#ef6c00', weight: 2, opacity: 0.8 },
+              onEachFeature: (f, l) => l.bindPopup('<strong>Tuyến đường tuần tra nội bộ</strong>')
+            }).addTo(group);
+          } catch(e) { console.warn('Lỗi tải giao thông:', e); }
+          return group;
+        }
+      },
+      {
+        id: 'layer_biengioi',
+        name: 'Biên giới Campuchia',
+        color: '#7b1fa2',
+        defaultOn: true,
+        loader: async () => {
+          const group = L.layerGroup();
+          try {
+            const data = await fetch('./layer_biengioi_cpc.geojson').then(r => r.json());
+            L.geoJSON(data, {
+              style: { color: '#7b1fa2', weight: 2.8, dashArray: '8, 4', opacity: 0.95 },
+              onEachFeature: (f, l) => l.bindPopup('<strong>Đường biên giới Việt Nam - Campuchia</strong><br>Ranh giới phía Tây VQG Yok Đôn')
+            }).addTo(group);
+          } catch(e) { console.warn('Lỗi tải biên giới CPC:', e); }
+          return group;
+        }
+      },
+      {
+        id: 'layer_hanhchinh',
+        name: 'Ranh giới Tỉnh & Xã',
+        color: '#455a64',
+        defaultOn: false,
+        loader: async () => {
+          const group = L.layerGroup();
+          try {
+            const [hc, text] = await Promise.all([
+              fetch('./layer_hanhchinh.geojson').then(r => r.json()).catch(()=>null),
+              fetch('./layer_hctext.geojson').then(r => r.json()).catch(()=>null)
+            ]);
+            if (hc) L.geoJSON(hc, {
+              style: { color: '#455a64', weight: 1.5, dashArray: '4, 2', opacity: 0.8 },
+              onEachFeature: (f, l) => l.bindPopup('<strong>Ranh giới Hành chính Lâm / Tỉnh / Xã</strong>')
+            }).addTo(group);
+            if (text) L.geoJSON(text, {
+              pointToLayer: (f, latlng) => L.circleMarker(latlng, { radius: 4, fillColor: '#546e7a', color: '#fff', weight: 1, fillOpacity: 0.8 }),
+              onEachFeature: (f, l) => l.bindPopup('<strong>Địa danh:</strong> ' + (f.properties.Ten || 'Địa phận xã'))
+            }).addTo(group);
+          } catch(e) { console.warn('Lỗi tải hành chính:', e); }
+          return group;
+        }
+      }
+    ];
+
+    async function toggleGISLayer(id) {
+      const cfg = GIS_CONFIG.find(c => c.id === id);
+      if (!cfg) return;
+
+      const chip = document.getElementById('chip_' + id);
+      if (mapLayers[id]) {
+        if (leafletMap.hasLayer(mapLayers[id])) {
+          leafletMap.removeLayer(mapLayers[id]);
+          if (chip) chip.classList.remove('active');
+        } else {
+          leafletMap.addLayer(mapLayers[id]);
+          if (chip) chip.classList.add('active');
+        }
+      } else {
+        if (chip) chip.classList.add('active');
+        mapLayers[id] = await cfg.loader();
+        leafletMap.addLayer(mapLayers[id]);
+      }
+    }
+
+    function renderLayerChips() {
+      const wrap = document.getElementById('layerChipsContainer');
+      if (!wrap) return;
+      wrap.innerHTML = GIS_CONFIG.map(c => 
+        `<div id="chip_${c.id}" class="layer-chip${c.defaultOn ? ' active' : ''}" onclick="toggleGISLayer('${c.id}')">` +
+          `<span class="dot" style="background:${c.color}"></span>` +
+          c.name +
+        `</div>`
+      ).join('');
+    }
+
+    function updateCoordDisplay(lat, lon) {
+      const el = document.getElementById('coordDisplay');
+      if (!el) return;
+      const [x, y] = wgs84ToVn2000(lon, lat);
+      el.innerHTML = '📍 <strong>WGS84:</strong> ' + lat.toFixed(5) + '°N, ' + lon.toFixed(5) + '°E | ' +
+                     '📐 <strong>VN-2000:</strong> X=<code>' + (x ? x.toFixed(1) : '-') + '</code> m, Y=<code>' + (y ? y.toFixed(1) : '-') + '</code> m';
+    }
+
+    function useMapCoordinate(lat, lon, x, y) {
+      document.getElementById('lat').value = lat.toFixed(6);
+      document.getElementById('lon').value = lon.toFixed(6);
+      if (!x || !y) {
+        const [cx, cy] = wgs84ToVn2000(lon, lat);
+        x = cx; y = cy;
+      }
+      if (document.getElementById('vn2000_x') && x) document.getElementById('vn2000_x').value = x.toFixed(1);
+      if (document.getElementById('vn2000_y') && y) document.getElementById('vn2000_y').value = y.toFixed(1);
+
+      switchTab('Form');
+      showStatus('Đã chọn tọa độ từ bản đồ: ' + lat.toFixed(5) + ', ' + lon.toFixed(5) + ' (VN-2000: ' + x + ', ' + y + ')', 'ok');
+    }
+
+    function searchMapLocation() {
+      const query = (document.getElementById('mapSearchInput').value || '').trim().toLowerCase();
+      if (!query) return;
+
+      // Check if user entered VN-2000 coordinates: e.g. "411458, 1430426"
+      const vnMatch = query.match(/^([3-7]\d{5}(?:\.\d+)?)[,\s]+([1-2]\d{6}(?:\.\d+)?)$/);
+      if (vnMatch) {
+        const x = parseFloat(vnMatch[1]);
+        const y = parseFloat(vnMatch[2]);
+        const [lon, lat] = vn2000ToWgs84(x, y);
+        if (lon && lat) {
+          leafletMap.flyTo([lat, lon], 14);
+          L.popup().setLatLng([lat, lon]).setContent(
+            '<strong>Tọa độ VN-2000:</strong> X=' + x + ' m, Y=' + y + ' m<br>' +
+            '<strong>WGS-84:</strong> ' + lat.toFixed(6) + ', ' + lon.toFixed(6) + '<br>' +
+            '<button class="popup-btn-use" onclick="useMapCoordinate(' + lat + ',' + lon + ',' + x + ',' + y + ')">📍 Dùng tọa độ này</button>'
+          ).openOn(leafletMap);
+          return;
+        }
+      }
+
+      // Check if user entered Lat/Lon: e.g. "12.934, 107.684"
+      const latLonMatch = query.match(/^(1[23]\.\d+)[,\s]+(107\.\d+)$/);
+      if (latLonMatch) {
+        const lat = parseFloat(latLonMatch[1]);
+        const lon = parseFloat(latLonMatch[2]);
+        const [x, y] = wgs84ToVn2000(lon, lat);
+        leafletMap.flyTo([lat, lon], 14);
+        L.popup().setLatLng([lat, lon]).setContent(
+          '<strong>WGS-84:</strong> ' + lat.toFixed(6) + ', ' + lon.toFixed(6) + '<br>' +
+          '<strong>VN-2000:</strong> X=' + x + ' m, Y=' + y + ' m<br>' +
+          '<button class="popup-btn-use" onclick="useMapCoordinate(' + lat + ',' + lon + ',' + x + ',' + y + ')">📍 Dùng tọa độ này</button>'
+        ).openOn(leafletMap);
+        return;
+      }
+
+      // Search features by name
+      const found = searchFeatures.find(f => f.name.toLowerCase().includes(query));
+      if (found && found.latlng) {
+        leafletMap.flyTo(found.latlng, 13);
+        const [x, y] = wgs84ToVn2000(found.latlng.lng, found.latlng.lat);
+        L.popup().setLatLng(found.latlng).setContent(
+          '<strong>' + found.name + '</strong> (' + found.type + ')<br>' +
+          '<strong>VN-2000:</strong> X=' + (x?x.toFixed(1):'-') + ', Y=' + (y?y.toFixed(1):'-') + '<br>' +
+          '<button class="popup-btn-use" onclick="useMapCoordinate(' + found.latlng.lat + ',' + found.latlng.lng + ',' + x + ',' + y + ')">📍 Chọn vị trí này</button>'
+        ).openOn(leafletMap);
+      } else {
+        alert('Không tìm thấy kết quả phù hợp với "' + query + '". Hãy thử tìm số tiểu khu (VD: 408), tên trạm (VD: Đrang Phốk), hoặc nhập tọa độ X Y VN-2000.');
+      }
+    }
+
+    async function initMap() {
       if (leafletMap) {
         leafletMap.invalidateSize();
         loadMapMarkers();
         return;
       }
 
-      leafletMap = L.map('mapContainer', { zoomControl: true }).setView([12.80, 107.67], 10);
+      renderLayerChips();
 
-      // OpenStreetMap tile layer (miễn phí, cache offline qua SW)
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      // Tâm VQG Yok Đôn: [12.96, 107.66]
+      leafletMap = L.map('mapContainer', { zoomControl: true }).setView([12.95, 107.66], 10);
+
+      // Base layers
+      const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap',
         maxZoom: 18
       }).addTo(leafletMap);
 
-      // Lớp ảnh vệ tinh ESRI (tùy chọn)
       const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: '© Esri',
+        attribution: '© Esri Satellite',
         maxZoom: 18
       });
 
       L.control.layers({
-        'Bản đồ đường': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap', maxZoom: 18
-        }).addTo(leafletMap),
-        'Ảnh vệ tinh': satellite
-      }).addTo(leafletMap);
+        'Bản đồ đường (OSM)': osm,
+        'Ảnh vệ tinh (Esri)': satellite
+      }, null, { position: 'topright' }).addTo(leafletMap);
 
-      // Vẽ ranh giới VQG Yok Đôn
-      L.geoJSON(YOKDON_BOUNDARY, {
-        style: {
-          color: '#2d5a27',
-          weight: 3,
-          fillColor: '#2d5a27',
-          fillOpacity: 0.08,
-          dashArray: '8, 4'
-        },
-        onEachFeature: (feature, layer) => {
-          layer.bindPopup('<strong>' + feature.properties.name + '</strong><br>Diện tích: ' +
-            feature.properties.area_ha.toLocaleString() + ' ha<br>Thành lập: ' + feature.properties.established);
+      // Load default GIS layers
+      for (const cfg of GIS_CONFIG) {
+        if (cfg.defaultOn) {
+          try {
+            mapLayers[cfg.id] = await cfg.loader();
+            leafletMap.addLayer(mapLayers[cfg.id]);
+          } catch(e) {
+            console.warn('Lỗi nạp lớp ' + cfg.id, e);
+          }
         }
-      }).addTo(leafletMap);
+      }
+
+      // Marker click / tap to pick coordinate
+      leafletMap.on('click', e => {
+        const lat = e.latlng.lat;
+        const lon = e.latlng.lng;
+        const [x, y] = wgs84ToVn2000(lon, lat);
+
+        if (clickMarker) leafletMap.removeLayer(clickMarker);
+        clickMarker = L.circleMarker(e.latlng, {
+          radius: 7,
+          color: '#2e7d32',
+          fillColor: '#81c784',
+          fillOpacity: 0.9,
+          weight: 2
+        }).addTo(leafletMap);
+
+        const content = 
+          '<div style="font-size:13px; line-height:1.45;">' +
+            '<strong style="color:#1b5e20;">📍 Điểm đã chạm trên bản đồ</strong><br>' +
+            '<strong>WGS-84:</strong> ' + lat.toFixed(6) + '°N, ' + lon.toFixed(6) + '°E<br>' +
+            '<strong>VN-2000:</strong> X = <code>' + (x?x.toFixed(1):'-') + '</code> m, Y = <code>' + (y?y.toFixed(1):'-') + '</code> m<br>' +
+            '<button class="popup-btn-use" onclick="useMapCoordinate(' + lat + ',' + lon + ',' + x + ',' + y + ')">📍 Sử dụng tọa độ này cho biểu mẫu ghi nhận</button>' +
+          '</div>';
+
+        clickMarker.bindPopup(content).openPopup();
+        updateCoordDisplay(lat, lon);
+      });
+
+      leafletMap.on('mousemove', e => {
+        updateCoordDisplay(e.latlng.lat, e.latlng.lng);
+      });
 
       // Legend
       const legend = L.control({ position: 'bottomright' });
       legend.onAdd = () => {
         const div = L.DomUtil.create('div', 'map-legend');
         div.innerHTML = '<strong>Chú giải</strong><br>' +
-          Object.entries(GROUP_COLORS).map(([k, c]) =>
-            '<i style="background:' + c + '"></i>' + k
-          ).join('<br>') +
-          '<br><i style="background:transparent;border:2px dashed #2d5a27;border-radius:0;width:14px;height:10px"></i>Ranh giới VQG';
+          '<i style="background:#1b5e20;border-radius:0;width:12px;height:3px"></i>Ranh giới VQG<br>' +
+          '<i style="background:#d32f2f"></i>Trạm Kiểm lâm<br>' +
+          '<i style="background:#b71c1c;border-radius:2px;width:12px;height:8px"></i>Phân khu BVNN<br>' +
+          '<i style="background:#f57f17;border-radius:2px;width:12px;height:8px"></i>Phân khu PHST<br>' +
+          '<i style="background:#0288d1;border-radius:0;width:12px;height:3px"></i>Sông Sêrêpôk<br>' +
+          '<i style="background:#7b1fa2;border-radius:0;width:12px;height:3px"></i>Biên giới CPC';
         return div;
       };
       legend.addTo(leafletMap);
 
       markersLayer = L.layerGroup().addTo(leafletMap);
 
-      // Hiện vị trí hiện tại
+      // Định vị GPS hiện tại
       leafletMap.locate({ setView: false, maxZoom: 14, enableHighAccuracy: true });
       leafletMap.on('locationfound', e => {
         L.circleMarker(e.latlng, { radius: 8, color: '#1565c0', fillColor: '#42a5f5', fillOpacity: 0.8, weight: 2 })
           .addTo(leafletMap)
-          .bindPopup('Vị trí hiện tại<br>Sai số: ~' + Math.round(e.accuracy) + 'm');
+          .bindPopup('Vị trí của bạn<br>Sai số: ~' + Math.round(e.accuracy) + 'm');
       });
 
       loadMapMarkers();
@@ -851,6 +1414,8 @@
             date: h.date || '',
             time: h.time || '',
             habitat: h.habitat || '',
+            vn2000_x: (h.lat && h.lon) ? wgs84ToVn2000(parseFloat(h.lon), parseFloat(h.lat))[0] : '',
+            vn2000_y: (h.lat && h.lon) ? wgs84ToVn2000(parseFloat(h.lon), parseFloat(h.lat))[1] : '',
             synced: h.synced ? 'Đã đồng bộ' : 'Chờ sóng',
             recordId: h.recordId || ''
           },
@@ -917,11 +1482,12 @@
       const data = await getExportData();
       if (data.length === 0) return alert('Chưa có ghi nhận nào có tọa độ GPS để xuất.');
 
-      const headers = ['ID', 'Loài', 'Nhóm', 'Ngày', 'Giờ', 'Lat', 'Lon', 'Sinh cảnh', 'Trạng thái đồng bộ', 'Mã bản ghi'];
+      const headers = ['ID', 'Loài', 'Nhóm', 'Ngày', 'Giờ', 'Lat_WGS84', 'Lon_WGS84', 'VN2000_X_m', 'VN2000_Y_m', 'Sinh cảnh', 'Trạng thái đồng bộ', 'Mã bản ghi'];
       const csvEsc = s => '"' + String(s || '').replace(/"/g, '""') + '"';
 
       let csv = '\uFEFF' + headers.join(',') + '\n'; // BOM for UTF-8 Excel
       data.forEach(h => {
+        const [vnX, vnY] = (h.lat && h.lon) ? wgs84ToVn2000(parseFloat(h.lon), parseFloat(h.lat)) : [null, null];
         csv += [
           csvEsc(h.clientUuid),
           csvEsc(h.label),
@@ -930,6 +1496,8 @@
           csvEsc(h.time),
           h.lat,
           h.lon,
+          vnX !== null ? vnX : '',
+          vnY !== null ? vnY : '',
           csvEsc(h.habitat),
           csvEsc(h.synced ? 'Đã đồng bộ' : 'Chờ sóng'),
           csvEsc(h.recordId)
