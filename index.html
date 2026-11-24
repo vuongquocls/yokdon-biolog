@@ -117,7 +117,7 @@
 <body>
   <div class="topbar">
     <h1>Yok Đôn BioLog</h1>
-    <span id="netBadge" class="badge online">Đang kiểm tra...</span>
+    <span id="netBadge" class="badge online" onclick="triggerManualSync()" style="cursor: pointer;" title="Bấm để đồng bộ dữ liệu ngay">Đang kiểm tra...</span>
   </div>
 
   <!-- ============ TAB 1: GHI NHẬN (Form) ============ -->
@@ -318,30 +318,7 @@
         <div id="historyList"></div>
       </div>
 
-      <!-- Khối Cài đặt kết nối, Bảo mật Token & Gemini AI -->
-      <details class="card" id="settingsDetails" style="margin-top: 14px; cursor: pointer;">
-        <summary style="font-weight: 700; color: #1e3a2f; display: flex; align-items: center; justify-content: space-between;">
-          <span>⚙️ Cài đặt đồng bộ, Bảo mật &amp; Gemini AI</span>
-          <span style="font-size: 11px; color: #0284c7; font-weight: normal;">Bấm để xem / sửa</span>
-        </summary>
-        <div style="margin-top: 14px; cursor: default; border-top: 1px dashed var(--border); padding-top: 12px;">
-          <label>Google Apps Script Web App URL</label>
-          <input type="url" id="settingGasUrl" placeholder="https://script.google.com/macros/s/.../exec">
-          <div class="hint">Mặc định dùng Web App của VQG. Bạn có thể dán URL Web App riêng nếu tự triển khai.</div>
 
-          <label style="margin-top: 10px;">Mã xác thực chống spam (API Secret Token)</label>
-          <input type="password" id="settingApiToken" placeholder="Để trống nếu máy chủ không bật mã bảo mật">
-          <div class="hint">Chống bắn rác vào Google Sheets khi repo công khai. Khớp với CONFIG.API_SECRET_TOKEN trong Code.gs.</div>
-
-          <label style="margin-top: 10px;">Google Gemini API Key (Nhận diện ảnh AI)</label>
-          <input type="password" id="settingGeminiKey" placeholder="AIzaSy...">
-          <div class="hint">Nhập Gemini API Key cá nhân để nhận diện trực tiếp ảnh hiện trường. Khoá được lưu an toàn trên máy này (localStorage) và không tải lên máy chủ.</div>
-
-          <button type="button" class="btn" style="background:#0284c7; color:#fff; width:100%; margin-top:12px; padding:10px; font-weight:600;" onclick="saveCustomSettings()">
-            💾 Lưu cấu hình này
-          </button>
-        </div>
-      </details>
     </div>
   </div>
 
@@ -443,56 +420,8 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
   <script>
-    // === Cấu hình Web App Google Apps Script & Khoá bảo mật ===
-    const DEFAULT_GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbylKKPH9Oj07BE-nr_0hAvckrQNIDtSzauf7btaFL0xuCjTNX9uN6xuVGg48QRYSB9c/exec';
-
-    function getEffectiveGasUrl() {
-      const custom = (localStorage.getItem('yd_gas_url') || '').trim();
-      return (custom && custom.indexOf('https://script.google.com/') === 0) ? custom : DEFAULT_GAS_WEBAPP_URL;
-    }
-
-    function getEffectiveApiToken() {
-      return (localStorage.getItem('yd_api_token') || '').trim();
-    }
-
-    function getEffectiveGeminiKey() {
-      return (localStorage.getItem('yd_gemini_key') || '').trim();
-    }
-
-    function loadCustomSettings() {
-      const urlEl = document.getElementById('settingGasUrl');
-      const tokenEl = document.getElementById('settingApiToken');
-      const keyEl = document.getElementById('settingGeminiKey');
-      if (urlEl) urlEl.value = localStorage.getItem('yd_gas_url') || DEFAULT_GAS_WEBAPP_URL;
-      if (tokenEl) tokenEl.value = localStorage.getItem('yd_api_token') || '';
-      if (keyEl) keyEl.value = localStorage.getItem('yd_gemini_key') || '';
-    }
-
-    function saveCustomSettings() {
-      const url = (document.getElementById('settingGasUrl').value || '').trim();
-      const token = (document.getElementById('settingApiToken').value || '').trim();
-      const key = (document.getElementById('settingGeminiKey').value || '').trim();
-
-      if (url && url !== DEFAULT_GAS_WEBAPP_URL) {
-        localStorage.setItem('yd_gas_url', url);
-      } else {
-        localStorage.removeItem('yd_gas_url');
-      }
-
-      if (token) {
-        localStorage.setItem('yd_api_token', token);
-      } else {
-        localStorage.removeItem('yd_api_token');
-      }
-
-      if (key) {
-        localStorage.setItem('yd_gemini_key', key);
-      } else {
-        localStorage.removeItem('yd_gemini_key');
-      }
-
-      alert('Đã lưu cấu hình thành công! Khoá bí mật và API Key được lưu an toàn trên máy này.');
-    }
+    // === Web App Google Apps Script Backend URL ===
+    const GAS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbylKKPH9Oj07BE-nr_0hAvckrQNIDtSzauf7btaFL0xuCjTNX9uN6xuVGg48QRYSB9c/exec';
 
     const DB_NAME = 'YokDonBioLogPWA';
     const DB_VERSION = 2;
@@ -565,15 +494,10 @@
 
     // ====================== APPS SCRIPT API ======================
     async function postToAppsScript(payload) {
-      const gasUrl = getEffectiveGasUrl();
-      if (!gasUrl || gasUrl.indexOf('https://script.google.com/') !== 0) {
+      if (!GAS_WEBAPP_URL || GAS_WEBAPP_URL.indexOf('https://script.google.com/') !== 0) {
         throw new Error('Chưa cấu hình Web App URL hợp lệ');
       }
-      const apiToken = getEffectiveApiToken();
-      if (apiToken) {
-        payload.apiToken = apiToken;
-      }
-      const res = await fetch(gasUrl, {
+      const res = await fetch(GAS_WEBAPP_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(payload)
@@ -600,10 +524,9 @@
         }
       }
 
-      const gasUrl = getEffectiveGasUrl();
-      if (navigator.onLine && gasUrl.indexOf('https://script.google.com/') === 0) {
+      if (navigator.onLine && GAS_WEBAPP_URL.indexOf('https://script.google.com/') === 0) {
         try {
-          const r = await fetch(gasUrl + '?action=catalog');
+          const r = await fetch(GAS_WEBAPP_URL + '?action=catalog');
           const live = await r.json();
           if (live && live.success && live.items && live.items.length > 0) {
             speciesCatalog = live.items;
@@ -897,15 +820,20 @@
       }
     }
 
-    async function syncQueue() {
-      if (isSyncing || !navigator.onLine) return;
+    async function syncQueue(manual = false) {
+      if (isSyncing || !navigator.onLine) return 0;
       const items = await dbOp('queue', 'readonly', s => s.getAll()) || [];
-      if (items.length === 0) return;
+      if (items.length === 0) {
+        await updateNetworkUI();
+        return 0;
+      }
 
       isSyncing = true;
       const syncBtn = document.getElementById('syncBtn');
-      syncBtn.disabled = true;
-      syncBtn.textContent = 'Đang đồng bộ...';
+      if (syncBtn) {
+        syncBtn.disabled = true;
+        syncBtn.textContent = 'Đang đồng bộ...';
+      }
 
       let okCount = 0;
       for (const item of items) {
@@ -927,21 +855,65 @@
       }
 
       isSyncing = false;
-      syncBtn.disabled = false;
-      syncBtn.textContent = 'Đồng bộ ngay';
+      if (syncBtn) {
+        syncBtn.disabled = false;
+        syncBtn.textContent = 'Đồng bộ ngay';
+      }
       await refreshUI();
-      if (okCount > 0) showStatus('Đã tự động đồng bộ ' + okCount + ' phiếu lên Google Sheets & Drive!', 'ok');
+      await updateNetworkUI();
+      if (okCount > 0 && !manual) {
+        showStatus('Đã tự động đồng bộ ' + okCount + ' phiếu lên Google Sheets & Drive!', 'ok');
+      }
+      return okCount;
     }
 
-    function updateNetworkUI() {
+    async function updateNetworkUI() {
       const badge = document.getElementById('netBadge');
+      if (!badge) return;
       if (navigator.onLine) {
         badge.className = 'badge online';
-        badge.textContent = 'Có sóng — Đồng bộ ngay';
-        syncQueue();
+        try {
+          const queue = await dbOp('queue', 'readonly', s => s.getAll()) || [];
+          if (queue.length > 0) {
+            badge.textContent = '🔄 Chờ đồng bộ (' + queue.length + ')';
+          } else {
+            badge.textContent = '🟢 Trực tuyến • Đồng bộ';
+          }
+        } catch(_) {
+          badge.textContent = '🟢 Trực tuyến • Đồng bộ';
+        }
       } else {
         badge.className = 'badge offline';
-        badge.textContent = 'Mất sóng — Lưu máy';
+        badge.textContent = '🔴 Ngoại tuyến — Lưu máy';
+      }
+    }
+
+    async function triggerManualSync() {
+      if (!navigator.onLine) {
+        alert('Thiết bị đang ngoại tuyến (không có sóng / internet). Dữ liệu được lưu an toàn trên máy và sẽ tự đồng bộ khi có mạng.');
+        return;
+      }
+      const badge = document.getElementById('netBadge');
+      if (badge) badge.textContent = 'Đang đồng bộ...';
+
+      const queueBefore = await dbOp('queue', 'readonly', s => s.getAll()) || [];
+      const hadQueue = queueBefore.length;
+      const syncedCount = await syncQueue(true);
+
+      // Tải lại danh mục loài và dữ liệu bản ghi mới nhất từ Google Sheets
+      await loadCatalog();
+      await fetchAndCacheSheetRecords(true);
+      await loadMapMarkers();
+      await updateExportCount();
+      await refreshUI();
+      await updateNetworkUI();
+
+      if (syncedCount > 0) {
+        showStatus('Đã đồng bộ thành công ' + syncedCount + ' phiếu lên Google Sheets!', 'ok');
+      } else if (hadQueue > 0) {
+        showStatus('Chưa đồng bộ được các phiếu chờ, vui lòng kiểm tra kết nối mạng.', 'err');
+      } else {
+        showStatus('Dữ liệu đã đồng bộ mới nhất — 0 phiếu chờ.', 'ok');
       }
     }
 
@@ -1069,7 +1041,7 @@
       },
       {
         id: 'layer_tram',
-        name: '18 Trạm & Đội Kiểm lâm (QĐ 684)',
+        name: '16 Trạm KL & 01 Trạm KLCĐ-PCCCR (QĐ 684)',
         color: '#d32f2f',
         defaultOn: true,
         loader: async () => {
@@ -1159,7 +1131,7 @@
       },
       {
         id: 'layer_tieukhu_nhan',
-        name: 'Nhãn 218 Tiểu khu (TK 408...)',
+        name: 'Nhãn Tiểu khu (TK 408...)',
         color: '#1565c0',
         defaultOn: false,
         loader: async () => {
@@ -1167,6 +1139,13 @@
           try {
             const data = await fetch('./layer_tieukhu_diem.geojson').then(r => r.json());
             L.geoJSON(data, {
+              filter: f => {
+                const ma = f.properties && f.properties.Ma;
+                if (!ma) return false;
+                if (ma === '472A') return true;
+                const num = Number(ma);
+                return !isNaN(num) && num >= 100;
+              },
               pointToLayer: (f, latlng) => {
                 const ma = f.properties.Ma || '';
                 searchFeatures.push({ name: 'Tiểu khu ' + ma, type: 'Tiểu khu', latlng: latlng, props: f.properties });
@@ -1235,26 +1214,21 @@
         }
       },
       {
-        id: 'layer_giaothong',
-        name: 'QL14C & Đường tuần tra',
-        color: '#ef6c00',
+        id: 'layer_ql14c',
+        name: 'Quốc lộ 14C',
+        color: '#d84315',
         defaultOn: true,
         loader: async () => {
           const group = L.layerGroup();
           try {
-            const [ql, gt] = await Promise.all([
-              fetch('./layer_ql14c.geojson').then(r => r.json()).catch(()=>null),
-              fetch('./layer_giaothong.geojson').then(r => r.json()).catch(()=>null)
-            ]);
-            if (ql) L.geoJSON(ql, {
-              style: { color: '#d84315', weight: 3.5, opacity: 0.9 },
-              onEachFeature: (f, l) => l.bindPopup('<strong>Quốc lộ 14C</strong><br>Tuyến đường vành đai phía Tây VQG')
-            }).addTo(group);
-            if (gt) L.geoJSON(gt, {
-              style: { color: '#ef6c00', weight: 2, opacity: 0.8 },
-              onEachFeature: (f, l) => l.bindPopup('<strong>Tuyến đường tuần tra nội bộ</strong>')
-            }).addTo(group);
-          } catch(e) { console.warn('Lỗi tải giao thông:', e); }
+            const ql = await fetch('./layer_ql14c.geojson').then(r => r.json()).catch(() => null);
+            if (ql) {
+              L.geoJSON(ql, {
+                style: { color: '#d84315', weight: 3.5, opacity: 0.9 },
+                onEachFeature: (f, l) => l.bindPopup('<strong>Quốc lộ 14C</strong><br>Tuyến đường vành đai phía Tây VQG')
+              }).addTo(group);
+            }
+          } catch(e) { console.warn('Lỗi tải Quốc lộ 14C:', e); }
           return group;
         }
       },
@@ -1623,47 +1597,125 @@
       loadMapMarkers();
     }
 
+    // ====================== DỮ LIỆU BẢN GHI (GOOGLE SHEET + OFFLINE) ======================
+    async function fetchAndCacheSheetRecords(force = false) {
+      if (navigator.onLine && GAS_WEBAPP_URL && GAS_WEBAPP_URL.indexOf('https://script.google.com/') === 0) {
+        try {
+          const res = await fetch(GAS_WEBAPP_URL + '?action=records').then(r => r.json());
+          if (res && res.success && Array.isArray(res.records)) {
+            await dbOp('meta', 'readwrite', s => s.put({
+              key: 'sheetRecords',
+              records: res.records,
+              ts: Date.now()
+            }));
+            return res.records;
+          }
+        } catch(e) {
+          console.warn('Lỗi nạp records từ Google Sheet:', e);
+        }
+      }
+      const cached = await dbOp('meta', 'readonly', s => s.get('sheetRecords'));
+      return (cached && Array.isArray(cached.records)) ? cached.records : [];
+    }
+
+    async function getMergedAllRecords() {
+      const [sheetRecords, localHistory, localQueue] = await Promise.all([
+        fetchAndCacheSheetRecords(false),
+        dbOp('history', 'readonly', s => s.getAll()) || [],
+        dbOp('queue', 'readonly', s => s.getAll()) || []
+      ]);
+
+      const recordsMap = new Map();
+
+      // 1. Dữ liệu từ máy chủ Google Sheets
+      sheetRecords.forEach(r => {
+        const key = r.recordId || r.clientUuid || (r.lat + '_' + r.lon + '_' + r.observedDate);
+        recordsMap.set(key, {
+          ...r,
+          date: r.observedDate,
+          time: r.observedTime,
+          synced: true
+        });
+      });
+
+      // 2. Dữ liệu lịch sử trên máy này
+      localHistory.forEach(h => {
+        const key = h.recordId || h.clientUuid;
+        if (recordsMap.has(key)) {
+          recordsMap.set(key, { ...recordsMap.get(key), ...h });
+        } else {
+          recordsMap.set(key, h);
+        }
+      });
+
+      // 3. Dữ liệu trong hàng đợi chờ đồng bộ
+      localQueue.forEach(q => {
+        const key = q.clientUuid;
+        if (!recordsMap.has(key)) {
+          recordsMap.set(key, {
+            clientUuid: q.clientUuid,
+            recordId: 'Chờ đồng bộ',
+            date: q.observedDate,
+            time: q.observedTime,
+            observedDate: q.observedDate,
+            observedTime: q.observedTime,
+            label: q.speciesLookup ? q.speciesLookup.split(' (')[0] : q.group,
+            speciesLookup: q.speciesLookup,
+            group: q.group,
+            quantity: q.quantity,
+            countUnit: q.countUnit,
+            lat: q.lat,
+            lon: q.lon,
+            locationNote: q.locationNote,
+            habitat: q.habitat,
+            behavior: q.behavior,
+            method: q.method,
+            notes: q.notes,
+            unit: q.unit,
+            reporterName: q.reporterName,
+            contact: q.contact,
+            synced: false
+          });
+        }
+      });
+
+      return Array.from(recordsMap.values());
+    }
+
     async function loadMapMarkers() {
       if (!markersLayer) return;
       markersLayer.clearLayers();
 
-      const hist = await dbOp('history', 'readonly', s => s.getAll()) || [];
+      const data = await getExportData();
       let count = 0;
-      hist.forEach(h => {
+      data.forEach(h => {
         const lat = parseFloat(h.lat);
         const lon = parseFloat(h.lon);
-        if (!isNaN(lat) && !isNaN(lon) && lat !== 0 && lon !== 0) {
-          const color = GROUP_COLORS[h.group] || '#757575';
-          L.circleMarker([lat, lon], {
-            radius: 7,
-            color: '#fff',
-            weight: 2,
-            fillColor: color,
-            fillOpacity: 0.9
-          }).bindPopup(
-            '<strong>' + (h.label || 'Chưa rõ') + '</strong><br>' +
-            'Nhóm: ' + (h.group || '') + '<br>' +
-            'Ngày: ' + (h.date || h.time || '') + '<br>' +
-            'Trạng thái: ' + (h.synced ? '✅ Đã đồng bộ' : '⏳ Chờ sóng') + '<br>' +
-            '<small>' + lat.toFixed(5) + ', ' + lon.toFixed(5) + '</small>'
-          ).addTo(markersLayer);
-          count++;
-        }
+        const color = GROUP_COLORS[h.group] || '#757575';
+        L.circleMarker([lat, lon], {
+          radius: 7,
+          color: '#fff',
+          weight: 2,
+          fillColor: color,
+          fillOpacity: 0.9
+        }).bindPopup(
+          '<strong>' + (h.label || h.speciesLookup || 'Chưa rõ') + '</strong><br>' +
+          'Nhóm: ' + (h.group || '') + '<br>' +
+          'Ngày: ' + (h.date || h.observedDate || '') + ' ' + (h.time || h.observedTime || '') + '<br>' +
+          (h.locationNote ? ('Địa điểm: ' + h.locationNote + '<br>') : '') +
+          (h.habitat ? ('Sinh cảnh: ' + h.habitat + '<br>') : '') +
+          (h.reporterName ? ('Người ghi nhận: ' + h.reporterName + (h.unit ? ' (' + h.unit + ')' : '') + '<br>') : '') +
+          'Trạng thái: ' + (h.synced ? '✅ Đã đồng bộ' : '⏳ Chờ sóng') + '<br>' +
+          '<small>' + lat.toFixed(5) + ', ' + lon.toFixed(5) + '</small>'
+        ).addTo(markersLayer);
+        count++;
       });
-
-      if (count === 0) {
-        // Show a note on the map
-        L.popup()
-          .setLatLng([12.80, 107.67])
-          .setContent('Chưa có ghi nhận nào có tọa độ GPS.<br>Hãy ghi nhận loài mới ở tab <b>Ghi nhận</b>!')
-          .openOn(leafletMap);
-      }
     }
 
     // ====================== GIS EXPORT ======================
     async function getExportData() {
-      const hist = await dbOp('history', 'readonly', s => s.getAll()) || [];
-      return hist.filter(h => {
+      const all = await getMergedAllRecords();
+      return all.filter(h => {
         const lat = parseFloat(h.lat);
         const lon = parseFloat(h.lon);
         return !isNaN(lat) && !isNaN(lon) && lat !== 0 && lon !== 0;
@@ -1672,9 +1724,11 @@
 
     async function updateExportCount() {
       const data = await getExportData();
-      const all = await dbOp('history', 'readonly', s => s.getAll()) || [];
-      document.getElementById('exportCount').textContent =
-        data.length + ' bản ghi có tọa độ GPS (trong tổng số ' + all.length + ' ghi nhận trên máy này)';
+      const all = await getMergedAllRecords();
+      const el = document.getElementById('exportCount');
+      if (el) {
+        el.textContent = data.length + ' bản ghi có tọa độ GPS (trong tổng số ' + all.length + ' ghi nhận trên hệ thống)';
+      }
     }
 
     function downloadFile(content, filename, mime) {
@@ -1695,25 +1749,39 @@
         type: 'FeatureCollection',
         name: 'YokDon_BioLog_Observations',
         crs: { type: 'name', properties: { name: 'urn:ogc:def:crs:EPSG::4326' } },
-        features: data.map(h => ({
-          type: 'Feature',
-          properties: {
-            id: h.clientUuid,
-            species: h.label || '',
-            group: h.group || '',
-            date: h.date || '',
-            time: h.time || '',
-            habitat: h.habitat || '',
-            vn2000_x: (h.lat && h.lon) ? wgs84ToVn2000(parseFloat(h.lon), parseFloat(h.lat))[0] : '',
-            vn2000_y: (h.lat && h.lon) ? wgs84ToVn2000(parseFloat(h.lon), parseFloat(h.lat))[1] : '',
-            synced: h.synced ? 'Đã đồng bộ' : 'Chờ sóng',
-            recordId: h.recordId || ''
-          },
-          geometry: {
-            type: 'Point',
-            coordinates: [parseFloat(h.lon), parseFloat(h.lat)]
-          }
-        }))
+        features: data.map(h => {
+          const lat = parseFloat(h.lat);
+          const lon = parseFloat(h.lon);
+          const [vnX, vnY] = wgs84ToVn2000(lon, lat);
+          return {
+            type: 'Feature',
+            properties: {
+              id: h.clientUuid || h.recordId,
+              recordId: h.recordId || '',
+              species: h.label || h.speciesLookup || '',
+              speciesLookup: h.speciesLookup || '',
+              group: h.group || '',
+              quantity: h.quantity || 1,
+              countUnit: h.countUnit || 'Cá thể',
+              date: h.date || h.observedDate || '',
+              time: h.time || h.observedTime || '',
+              unit: h.unit || '',
+              reporterName: h.reporterName || '',
+              locationNote: h.locationNote || '',
+              habitat: h.habitat || '',
+              behavior: h.behavior || '',
+              method: h.method || '',
+              vn2000_x: vnX,
+              vn2000_y: vnY,
+              synced: h.synced ? 'Đã đồng bộ' : 'Chờ sóng',
+              notes: h.notes || ''
+            },
+            geometry: {
+              type: 'Point',
+              coordinates: [lon, lat]
+            }
+          };
+        })
       };
 
       const dateStr = new Date().toISOString().slice(0, 10);
@@ -1733,7 +1801,7 @@
         'Khác / Chưa rõ': 'http://maps.google.com/mapfiles/kml/paddle/wht-circle.png'
       };
 
-      const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
       let kml = '<?xml version="1.0" encoding="UTF-8"?>\n' +
         '<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n' +
@@ -1749,12 +1817,18 @@
       // Placemarks
       data.forEach(h => {
         const styleId = (h.group || 'Khác / Chưa rõ').replace(/[^a-zA-Z]/g, '_');
+        const [vnX, vnY] = wgs84ToVn2000(parseFloat(h.lon), parseFloat(h.lat));
         kml += '<Placemark>\n' +
-          '<name>' + esc(h.label || 'Chưa rõ') + '</name>\n' +
+          '<name>' + esc(h.label || h.speciesLookup || 'Chưa rõ') + '</name>\n' +
           '<description>' +
+            'Mã bản ghi: ' + esc(h.recordId || 'Chờ sóng') + '\n' +
             'Nhóm: ' + esc(h.group || '') + '\n' +
-            'Ngày: ' + esc(h.date || '') + ' ' + esc(h.time || '') + '\n' +
+            'Số lượng: ' + (h.quantity || 1) + ' ' + esc(h.countUnit || 'Cá thể') + '\n' +
+            'Ngày: ' + esc(h.date || h.observedDate || '') + ' ' + esc(h.time || h.observedTime || '') + '\n' +
+            'Người ghi nhận: ' + esc(h.reporterName || '') + ' (' + esc(h.unit || '') + ')\n' +
+            'Địa điểm: ' + esc(h.locationNote || '') + '\n' +
             'Sinh cảnh: ' + esc(h.habitat || '') + '\n' +
+            'Tọa độ VN-2000: X=' + vnX + 'm, Y=' + vnY + 'm\n' +
             'Trạng thái: ' + (h.synced ? 'Đã đồng bộ' : 'Chờ sóng') +
           '</description>\n' +
           '<styleUrl>#style_' + styleId + '</styleUrl>\n' +
@@ -1772,25 +1846,33 @@
       const data = await getExportData();
       if (data.length === 0) return alert('Chưa có ghi nhận nào có tọa độ GPS để xuất.');
 
-      const headers = ['ID', 'Loài', 'Nhóm', 'Ngày', 'Giờ', 'Lat_WGS84', 'Lon_WGS84', 'VN2000_X_m', 'VN2000_Y_m', 'Sinh cảnh', 'Trạng thái đồng bộ', 'Mã bản ghi'];
+      const headers = ['ID', 'Mã bản ghi', 'Loài', 'Nhóm', 'Ngày', 'Giờ', 'Đơn vị', 'Người ghi nhận', 'Số lượng', 'ĐVT', 'Lat_WGS84', 'Lon_WGS84', 'VN2000_X_m', 'VN2000_Y_m', 'Địa điểm', 'Sinh cảnh', 'Hành vi', 'Phương pháp', 'Trạng thái đồng bộ', 'Ghi chú'];
       const csvEsc = s => '"' + String(s || '').replace(/"/g, '""') + '"';
 
       let csv = '\uFEFF' + headers.join(',') + '\n'; // BOM for UTF-8 Excel
       data.forEach(h => {
-        const [vnX, vnY] = (h.lat && h.lon) ? wgs84ToVn2000(parseFloat(h.lon), parseFloat(h.lat)) : [null, null];
+        const [vnX, vnY] = (h.lat && h.lon) ? wgs84ToVn2000(parseFloat(h.lon), parseFloat(h.lat)) : ['', ''];
         csv += [
-          csvEsc(h.clientUuid),
-          csvEsc(h.label),
+          csvEsc(h.clientUuid || h.recordId),
+          csvEsc(h.recordId),
+          csvEsc(h.label || h.speciesLookup),
           csvEsc(h.group),
-          csvEsc(h.date),
-          csvEsc(h.time),
+          csvEsc(h.date || h.observedDate),
+          csvEsc(h.time || h.observedTime),
+          csvEsc(h.unit),
+          csvEsc(h.reporterName),
+          h.quantity || 1,
+          csvEsc(h.countUnit || 'Cá thể'),
           h.lat,
           h.lon,
-          vnX !== null ? vnX : '',
-          vnY !== null ? vnY : '',
+          vnX,
+          vnY,
+          csvEsc(h.locationNote),
           csvEsc(h.habitat),
+          csvEsc(h.behavior),
+          csvEsc(h.method),
           csvEsc(h.synced ? 'Đã đồng bộ' : 'Chờ sóng'),
-          csvEsc(h.recordId)
+          csvEsc(h.notes)
         ].join(',') + '\n';
       });
 
@@ -1818,7 +1900,6 @@
       try {
         const compressed = await compressImage(file);
         const group = document.getElementById('group').value;
-        const geminiKey = getEffectiveGeminiKey();
 
         // Tự động thêm ảnh vừa chụp vào danh mục ảnh đính kèm nếu chưa có
         const photosInput = document.getElementById('photos');
@@ -1829,53 +1910,23 @@
           previewImages();
         }
 
-        // KIỂM TRA CHẾ ĐỘ ONLINE VÀ CÓ GEMINI API KEY CÁ NHÂN
-        if (navigator.onLine && geminiKey) {
-          resultDiv.textContent = 'Đang gửi ảnh tới Google Gemini AI để nhận diện loài...';
-          const base64Data = compressed.base64Data;
-          const mimeType = compressed.mimeType || 'image/jpeg';
+        // KIỂM TRA CHẾ ĐỘ ONLINE ĐỂ GỌI BACKEND GEMINI AI
+        if (navigator.onLine && GAS_WEBAPP_URL && GAS_WEBAPP_URL.indexOf('https://script.google.com/') === 0) {
+          resultDiv.textContent = 'Đang gửi ảnh tới Google Gemini AI (Backend) để nhận diện loài...';
+          try {
+            const aiRes = await postToAppsScript({
+              action: 'identify',
+              imageBase64: compressed.base64Data,
+              mimeType: compressed.mimeType || 'image/jpeg',
+              group: group
+            });
 
-          const promptText = 'Bạn là chuyên gia phân loại sinh vật tại Vườn quốc gia Yok Đôn (Đắk Lắk, Việt Nam). Hãy phân tích ảnh chụp này và dự đoán loài. Hãy trả về ĐÚNG định dạng JSON thuần túy (không dùng markdown, không ```json), cấu trúc:\n' +
-            '{"species_vn": "Tên tiếng Việt dự đoán", "species_latin": "Tên khoa học", "group": "Chim|Thú|Thực vật|Bò sát|Cá|Khác", "confidence": "Cao|Trung bình|Thấp", "reason": "Mô tả ngắn 1-2 đặc điểm nhận diện rõ nhất"}' +
-            '\nNếu không chắc chắn, hãy đưa ra loài khả dĩ nhất tại Yok Đôn kèm độ tin cậy.';
-
-          const endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + encodeURIComponent(geminiKey);
-          const reqBody = {
-            contents: [{
-              parts: [
-                { text: promptText },
-                {
-                  inline_data: {
-                    mime_type: mimeType,
-                    data: base64Data
-                  }
-                }
-              ]
-            }]
-          };
-
-          const aiRes = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(reqBody)
-          });
-
-          if (aiRes.ok) {
-            const aiJson = await aiRes.json();
-            const rawText = aiJson.candidates && aiJson.candidates[0] && aiJson.candidates[0].content && aiJson.candidates[0].content.parts && aiJson.candidates[0].content.parts[0] ? aiJson.candidates[0].content.parts[0].text : '';
-            
-            let parsed = null;
-            try {
-              const cleanJson = rawText.replace(/```(?:json)?/gi, '').trim();
-              parsed = JSON.parse(cleanJson);
-            } catch (_) {}
-
-            if (parsed && parsed.species_vn) {
-              const vn = parsed.species_vn;
-              const latin = parsed.species_latin ? ' (' + parsed.species_latin + ')' : '';
-              const aiGroup = parsed.group || group;
-              const conf = parsed.confidence || 'Trung bình';
-              const reason = parsed.reason || '';
+            if (aiRes && aiRes.success && aiRes.result && aiRes.result.species_vn) {
+              const vn = aiRes.result.species_vn;
+              const latin = aiRes.result.species_latin ? ' (' + aiRes.result.species_latin + ')' : '';
+              const aiGroup = aiRes.result.group || group;
+              const conf = aiRes.result.confidence || 'Trung bình';
+              const reason = aiRes.result.reason || '';
 
               // Đối chiếu danh mục 1.752 loài của VQG
               let matched = speciesCatalog.find(s => s.l.toLowerCase().includes(vn.toLowerCase()));
@@ -1895,10 +1946,12 @@
               input.value = '';
               return;
             }
+          } catch(e) {
+            console.warn('Lỗi gọi Gemini AI backend:', e);
           }
         }
 
-        // CHẾ ĐỘ NGOẠI TUYẾN / CHƯA CẤU HÌNH GEMINI KEY (GỢI Ý DANH MỤC THỰC ĐỊA)
+        // CHẾ ĐỘ NGOẠI TUYẾN HOẶC FALLBACK (GỢI Ý DANH MỤC THỰC ĐỊA THEO NHÓM)
         const candidates = speciesCatalog.filter(s => s.g === group || group === 'Khác / Chưa rõ');
         if (candidates.length === 0) {
           resultDiv.textContent = 'Không tìm thấy loài nào trong nhóm "' + group + '". Hãy thử đổi nhóm loài.';
@@ -1916,7 +1969,7 @@
             '<span style="display:inline-block;margin:3px 4px;padding:4px 10px;background:#dcfce7;border-radius:16px;font-size:12px;cursor:pointer;border:1px solid #86efac;" ' +
             'onclick="pickSpecies(\'' + s.l.replace(/'/g, "\\'") + '\')">' + s.l.split(' (')[0] + '</span>'
           ).join('') +
-          '<br><small style="color:#4b5563;display:block;margin-top:6px;">Chạm vào tên loài để chọn nhanh. (Mẹo: Mở mục <b>⚙️ Cài đặt đồng bộ &amp; Gemini AI</b> bên dưới để nhập API Key giúp AI tự nhận diện loài khi có mạng).</small>';
+          '<br><small style="color:#4b5563;display:block;margin-top:6px;">Chạm vào tên loài để chọn nhanh vào phiếu.</small>';
 
       } catch (err) {
         resultDiv.textContent = 'Lỗi xử lý ảnh: ' + err.message;
@@ -1952,11 +2005,12 @@
 
     (async function init() {
       loadProfile();
-      loadCustomSettings();
       await openDB();
       await refreshUI();
-      updateNetworkUI();
+      await updateNetworkUI();
       await loadCatalog();
+      await fetchAndCacheSheetRecords();
+      await updateExportCount();
     })();
   </script>
 </body>

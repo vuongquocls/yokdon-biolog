@@ -11,13 +11,13 @@
 | Tính năng | Chi tiết |
 |---|---|
 | 📋 **Ghi nhận loài** | Danh mục **1.752 loài** đặc hữu và quý hiếm Yok Đôn (thực vật, thú, chim, bò sát, cá...), tìm kiếm tức thì, nén ảnh tự động, lưu ngoại tuyến an toàn |
-| 🤖 **Nhận diện loài & AI** | Hỗ trợ chụp ảnh hiện trường và nhận diện qua **Google Gemini 2.5 Flash Vision** (khi có mạng + cấu hình API Key); tự động gợi ý danh mục chuẩn Yok Đôn khi offline |
+| 🤖 **Nhận diện loài & AI** | Hỗ trợ chụp ảnh hiện trường và nhận diện qua **Google Gemini 2.5 Flash Vision** (xử lý an toàn qua backend Google Apps Script với `GEMINI_API_KEY` trong Script Properties); tự động gợi ý danh mục chuẩn Yok Đôn khi offline |
 | 📐 **Hệ tọa độ VN-2000 7 tham số** | Tích hợp thuật toán chuyển đổi Bursa-Wolf 7 tham số chuẩn **QĐ 05/2007/QĐ-BTNMT** (KTT 108°30', Múi 3°, $k=0.9999$); triệt tiêu hoàn toàn sai số lệch vị trí, khớp tuyệt đối với máy Garmin và bản đồ lâm nghiệp |
-| 🗺️ **Bản đồ GIS Lâm nghiệp** | Tích hợp trọn bộ dữ liệu bản đồ VQG Yok Đôn chuyển đổi từ MapInfo sang GeoJSON với 10 lớp chuyên đề (Ranh giới VQG, 16 Trạm KL, Phân khu BVNN/PHST/DVHC, Tiểu khu, Lô/Khoảnh, Sông suối, Giao thông...) |
+| 🗺️ **Bản đồ GIS Lâm nghiệp** | Tích hợp trọn bộ dữ liệu bản đồ VQG Yok Đôn chuyển đổi từ MapInfo sang GeoJSON với các lớp chuyên đề (Ranh giới VQG, 16 Trạm KL & Trạm KLCĐ, Phân khu BVNN/PHST/DVHC, Ranh giới & Nhãn Tiểu khu, Lô/Khoảnh DTK, Sông Sêrêpôk, Quốc lộ 14C...) |
 | 📍 **Vị trí của tôi & Tra cứu** | Nút định vị GPS trực tiếp vị trí hiện tại với hiệu ứng sóng radar; tìm kiếm nhanh theo số hiệu Tiểu khu (VD: 408), tên Trạm Kiểm lâm, hoặc nhập tọa độ X/Y VN-2000 |
-| 📥 **Xuất dữ liệu GIS** | Xuất GeoJSON, KML (Google Earth), CSV (có sẵn cột VN-2000 X, Y) để nạp trực tiếp vào QGIS, ArcGIS, MapInfo |
-| 📶 **Offline an toàn (SW v7)** | Service Worker v7 tách nạp Core Assets và Lazy Assets với `Promise.allSettled`, đảm bảo cài đặt và vận hành mượt mà ngay cả khi sóng 3G/4G chập chờn bìa rừng |
-| 🔒 **Bảo mật & Chống spam** | Hỗ trợ cấu hình Web App URL riêng, API Secret Token chống spam, lưu trữ bảo mật cục bộ trên thiết bị (`localStorage`), `TextFinder` chống trùng lặp toàn diện |
+| 📥 **Xuất dữ liệu GIS** | Xuất GeoJSON, KML (Google Earth), CSV (có sẵn cột VN-2000 X, Y) đồng bộ trực tiếp toàn bộ dữ liệu quan trắc từ Google Sheet và bộ nhớ ngoại tuyến |
+| 📶 **Offline an toàn (SW v8)** | Service Worker v8 tách nạp Core Assets và Lazy Assets với `Promise.allSettled`, nút đồng bộ 1 chạm thông minh `🟢 Trực tuyến • Đồng bộ` trên thanh tiêu đề |
+| 🔒 **Bảo mật & Chống spam** | Bảo mật API Key trên máy chủ Apps Script, tùy chọn API Secret Token chống spam, `TextFinder` chống trùng lặp toàn diện |
 | 💰 **Chi phí 0 đồng** | Chạy trên nền tảng GitHub Pages + Google Apps Script + Google Sheets + Google Drive |
 
 ---
@@ -27,7 +27,7 @@
 Tất cả các lớp được chuẩn hóa từ nguồn bản đồ số lâm nghiệp VQG Yok Đôn (VN-2000 TM-3 KTT 108.5° sang WGS-84 GeoJSON):
 
 1. **Ranh giới Vườn quốc gia** (`layer_vqg_ranh.geojson`, `layer_vqg_bo.geojson`): Ranh giới toàn bộ diện tích 115.545 ha.
-2. **16 Trạm Kiểm lâm (QĐ 684) & Đội Kiểm lâm** (`layer_tram.geojson`):
+2. **16 Trạm KL & 01 Trạm KLCĐ-PCCCR (QĐ 684)** (`layer_tram.geojson`):
    - **Trụ sở Hạt Kiểm lâm** VQG Yok Đôn;
    - **Trạm Kiểm lâm cơ động và PCCCR**;
    - **16 Trạm Kiểm lâm địa bàn:** Trạm số 01 đến số 12, Trạm Đắk Ruê, Trạm Đắk Na, Trạm Đrăng Phốk, Trạm Sê Rê Pôk.
@@ -36,10 +36,10 @@ Tất cả các lớp được chuẩn hóa từ nguồn bản đồ số lâm n
    - Phân khu Phục hồi Sinh thái (PHST) — Viền cam vàng
    - Phân khu Dịch vụ Hành chính (DVHC) — Viền xanh dương
 4. **Ranh giới Tiểu khu** (`layer_tieukhu.geojson`): Hệ thống ranh giới phân định tiểu khu lâm nghiệp.
-5. **Nhãn 218 Tiểu khu** (`layer_tieukhu_diem.geojson`): Tâm và số hiệu từng tiểu khu (TK 408, 409, 410...).
+5. **Nhãn Tiểu khu** (`layer_tieukhu_diem.geojson`): Tâm và số hiệu từng tiểu khu chuẩn hóa (TK 408, 409, 410, các tiểu khu phía Nam 827, 828, 829, 830, 836...).
 6. **Lô & Khoảnh rừng (DTK)** (`layer_dtk.geojson`): 973 ô lô/khoảnh chi tiết với các thuộc tính: Số Lô, Số Khoảnh, Tiểu khu, Diện tích (ha), Loại đất loại rừng (LDLR), Mục đích sử dụng (MDSD), Địa phận Xã, Huyện, Chủ rừng.
 7. **Sông Sêrêpôk & Thủy văn** (`layer_song_srp.geojson`): Dòng sông huyết mạch và hệ thống suối tự nhiên.
-8. **Quốc lộ 14C & Tuyến tuần tra** (`layer_ql14c.geojson`, `layer_giaothong.geojson`): Tuyến giao thông huyết mạch và mạng lưới đường tuần tra nội bộ.
+8. **Quốc lộ 14C** (`layer_ql14c.geojson`): Tuyến đường vành đai phía Tây VQG Yok Đôn.
 9. **Đường biên giới Campuchia** (`layer_biengioi_cpc.geojson`): Tuyến biên giới tiếp giáp Vương quốc Campuchia.
 10. **Ranh giới Hành chính Tỉnh & Xã** (`layer_hanhchinh.geojson`, `layer_hctext.geojson`): Địa giới hành chính các xã Buôn Đôn, Krông Na, Ea Huar, Ea Súp, Ea Bung, Đắk Wil (Cư Jút).
 
@@ -72,24 +72,23 @@ Nhờ bộ 7 tham số này, ứng dụng triệt tiêu hoàn toàn sai số l�
 
 ```
 yokdon-biolog/
-├── index.html                  # Ứng dụng PWA (Ghi nhận + Bản đồ 10 lớp + Gemini AI + Xuất GIS)
+├── index.html                  # Ứng dụng PWA (Ghi nhận + Bản đồ 9 lớp + Gemini AI + Xuất GIS)
 ├── manifest.json               # Cấu hình PWA Web App
-├── sw.js                       # Service Worker v7 (Cache an toàn, tách Lazy assets)
+├── sw.js                       # Service Worker v8 (Cache an toàn, tách Lazy assets)
 ├── catalog.json                # Cơ sở dữ liệu 1.752 loài VQG Yok Đôn
 ├── icon.svg                    # Biểu tượng ứng dụng
-├── Code.gs                     # Backend Google Apps Script (TextFinder chống trùng, validate & token)
+├── Code.gs                     # Backend Google Apps Script (Gemini Vision, records GIS, TextFinder chống trùng)
 ├── layer_vqg_ranh.geojson      # Ranh giới VQG Yok Đôn (Polygon)
 ├── layer_vqg_bo.geojson        # Đường biên ranh VQG (Line)
-├── layer_tram.geojson          # 16 Trạm Kiểm lâm (QĐ 684) & Trạm KLCĐ + Hạt
+├── layer_tram.geojson          # 16 Trạm KL & 01 Trạm KLCĐ-PCCCR (QĐ 684) + Hạt
 ├── layer_pkcn_bvnn.geojson     # Phân khu Bảo vệ Nghiêm ngặt
 ├── layer_pkcn_phst.geojson     # Phân khu Phục hồi Sinh thái
 ├── layer_pkcn_dvhc.geojson     # Phân khu Dịch vụ Hành chính
 ├── layer_tieukhu.geojson       # Ranh giới Tiểu khu
-├── layer_tieukhu_diem.geojson  # Điểm nhãn 218 Tiểu khu
+├── layer_tieukhu_diem.geojson  # Điểm nhãn Tiểu khu chuẩn hóa
 ├── layer_dtk.geojson           # 973 ô Lô/Khoảnh chi tiết (DTK - Lazy cached)
 ├── layer_song_srp.geojson      # Sông Sêrêpôk (Lazy cached)
 ├── layer_ql14c.geojson         # Quốc lộ 14C
-├── layer_giaothong.geojson     # Hệ thống đường tuần tra
 ├── layer_biengioi_cpc.geojson  # Đường biên giới Việt Nam - Campuchia
 ├── layer_hanhchinh.geojson     # Ranh giới hành chính Tỉnh/Xã
 └── layer_hctext.geojson        # Địa danh hành chính

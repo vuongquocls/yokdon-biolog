@@ -18,9 +18,15 @@ const CONFIG = {
 };
 
 function doGet(e) {
-  if (e && e.parameter && e.parameter.action === 'catalog') {
-    return ContentService.createTextOutput(JSON.stringify(getSpeciesCatalog()))
-      .setMimeType(ContentService.MimeType.JSON);
+  if (e && e.parameter) {
+    if (e.parameter.action === 'catalog') {
+      return ContentService.createTextOutput(JSON.stringify(getSpeciesCatalog()))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    if (e.parameter.action === 'records') {
+      return ContentService.createTextOutput(JSON.stringify(getObservationRecords()))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
   }
   return HtmlService.createHtmlOutputFromFile('Index')
     .setTitle('Yok Đôn BioLog — Giám sát Đa dạng sinh học')
@@ -30,14 +36,22 @@ function doGet(e) {
 
 /**
  * API POST tiếp nhận dữ liệu từ App (GitHub Pages / Cloudflare Pages / PWA)
- * Bổ sung kiểm tra hợp lệ, chống spam & bảo mật token
+ * - action === 'identify': Nhận diện loài qua Google Gemini Vision API (bảo mật khóa trên Apps Script)
+ * - Mặc định: Tiếp nhận phiếu ghi nhận mới và lưu vào Google Sheet + Google Drive
  */
 function doPost(e) {
   try {
     const raw = e && e.postData && e.postData.contents ? e.postData.contents : '{}';
     const payload = JSON.parse(raw);
 
-    // 1. Kiểm tra Token bảo mật nếu máy chủ có thiết lập API_SECRET_TOKEN
+    // 1. Nhánh nhận diện ảnh bằng Gemini Vision API
+    if (payload && payload.action === 'identify') {
+      const aiResult = identifySpeciesWithGemini_(payload);
+      return ContentService.createTextOutput(JSON.stringify(aiResult))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 2. Nhánh gửi phiếu ghi nhận: Kiểm tra Token bảo mật nếu có thiết lập
     if (CONFIG.API_SECRET_TOKEN && CONFIG.API_SECRET_TOKEN.trim() !== '') {
       if (!payload.apiToken || payload.apiToken !== CONFIG.API_SECRET_TOKEN) {
         return ContentService.createTextOutput(JSON.stringify({
@@ -47,7 +61,7 @@ function doPost(e) {
       }
     }
 
-    // 2. Validate dữ liệu đầu vào cơ bản chống spam rác
+    // 3. Validate dữ liệu đầu vào cơ bản chống spam rác
     const vError = validatePayload_(payload);
     if (vError) {
       return ContentService.createTextOutput(JSON.stringify({
@@ -62,6 +76,194 @@ function doPost(e) {
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.message }))
       .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * Nhận diện loài qua ảnh sử dụng Google Gemini Vision API
+ * API Key được lưu an toàn trong PropertiesService (Script Properties) của Google Apps Script:
+ * Cài đặt tại: Extensions -> Apps Script -> Project Settings -> Script Properties -> GEMINI_API_KEY
+ */
+function identifySpeciesWithGemini_(payload) {
+  try {
+    const apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
+    if (!apiKey || apiKey.trim() === '') {
+      return {
+        success: false,
+        error: 'Chưa cấu hình GEMINI_API_KEY trong Script Properties của Google Apps Script.'
+      };
+    }
+
+    const base64Data = payload.imageBase64 || '';
+    if (!base64Data) {
+      return { success: false, error: 'Thiếu dữ liệu ảnh (imageBase64).' };
+    }
+
+    const mimeType = payload.mimeType || 'image/jpeg';
+    const groupHint = payload.group && payload.group !== 'Khác / Chưa rõ' ? ' (Ưu tiên kiểm tra nhóm: ' + payload.group + ')' : '';
+
+    const promptText = 'Bạn là chuyên gia phân loại học sinh vật tại Vườn quốc gia Yok Đôn (Đắk Lắk - Đắk Nông, Việt Nam). ' +
+      'Hãy quan sát kỹ ảnh chụp hiện trường này' + groupHint + ' và nhận diện loài. ' +
+      'YÊU CẦU BẮT BUỘC: Trả về ĐÚNG định dạng JSON thuần túy (không sử dụng markdown block ```json, không thêm chữ dẫn đầu hay kết bài), theo đúng cấu trúc sau:\n' +
+      '{\n' +
+      '  "species_vn": "Tên tiếng Việt dự đoán",\n' +
+      '  "species_latin": "Tên khoa học",\n' +
+      '  "group": "Chim|Thú|Thực vật|Bò sát|Cá|Khác",\n' +
+      '  "confidence": "Cao|Trung bình|Thấp",\n' +
+      '  "reason": "Mô tả ngắn gọn 1-2 đặc điểm nhận diện rõ nhất quan sát được trong ảnh"\n' +
+      '}\n' +
+      'Nếu không chắc chắn chính xác loài, hãy đưa ra loài gần nhất có phân bố tại hệ sinh thái rừng khộp Yok Đôn kèm độ tin cậy tương ứng.';
+
+    const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + encodeURIComponent(apiKey.trim());
+    const reqBody = {
+      contents: [{
+        parts: [
+          { text: promptText },
+          {
+            inline_data: {
+              mime_type: mimeType,
+              data: base64Data
+            }
+          }
+        ]
+      }]
+    };
+
+    const options = {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify(reqBody),
+      muteHttpExceptions: true
+    };
+
+    const res = UrlFetchApp.fetch(url, options);
+    const code = res.getResponseCode();
+    const text = res.getContentText();
+
+    if (code !== 200) {
+      return { success: false, error: 'Gemini API trả về mã lỗi HTTP ' + code + ': ' + text };
+    }
+
+    const jsonRes = JSON.parse(text);
+    const candidate = jsonRes.candidates && jsonRes.candidates[0];
+    const rawContent = candidate && candidate.content && candidate.content.parts && candidate.content.parts[0] ? candidate.content.parts[0].text : '';
+
+    // Làm sạch Markdown nếu Gemini trả về ```json ... ```
+    const cleanJsonStr = rawContent.replace(/```(?:json)?/gi, '').trim();
+    const parsed = JSON.parse(cleanJsonStr);
+
+    return {
+      success: true,
+      result: parsed
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: 'Lỗi nhận diện Gemini: ' + err.message
+    };
+  }
+}
+
+/**
+ * Trả về danh sách tất cả các bản ghi có tọa độ từ tab NhatKy_GhiNhan
+ * Phục vụ hiển thị đầy đủ lên bản đồ và xuất dữ liệu GIS (GeoJSON / KML / CSV)
+ */
+function getObservationRecords() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const logSheet = ss.getSheetByName(CONFIG.SHEET_NHAT_KY);
+    if (!logSheet) return { success: false, records: [] };
+
+    const lastRow = logSheet.getLastRow();
+    if (lastRow < 2) return { success: true, count: 0, records: [] };
+
+    const tz = ss.getSpreadsheetTimeZone() || 'Asia/Ho_Chi_Minh';
+    // Đọc từ dòng 2, cột 1 (A) đến cột 26 (Z)
+    const values = logSheet.getRange(2, 1, lastRow - 1, 26).getValues();
+    const records = [];
+
+    for (let i = 0; i < values.length; i++) {
+      const row = values[i];
+      const latRaw = row[16]; // Cột 17 (Q): lat
+      const lonRaw = row[17]; // Cột 18 (R): lon
+
+      // Bỏ qua nếu không có tọa độ GPS
+      if (latRaw === '' || lonRaw === '' || latRaw == null || lonRaw == null) continue;
+      const lat = Number(latRaw);
+      const lon = Number(lonRaw);
+      if (isNaN(lat) || isNaN(lon) || lat === 0 || lon === 0) continue;
+
+      let recordId = String(row[0] || '').trim();
+      let dateStr = '';
+      if (row[1] instanceof Date) {
+        dateStr = Utilities.formatDate(row[1], tz, 'yyyy-MM-dd');
+      } else {
+        dateStr = String(row[1] || '').slice(0, 10);
+      }
+
+      if (!recordId) {
+        const yr = dateStr ? dateStr.substring(0, 4) : '2026';
+        recordId = 'YD-' + yr + '-' + String(i + 1).padStart(4, '0');
+      }
+
+      let timeStr = '';
+      if (row[3] instanceof Date) {
+        timeStr = Utilities.formatDate(row[3], tz, 'HH:mm');
+      } else {
+        timeStr = String(row[3] || '').slice(0, 5);
+      }
+
+      const notesRaw = String(row[25] || '');
+      let clientUuid = '';
+      const matchUuid = notesRaw.match(/\[UUID:([^\]]+)\]/);
+      if (matchUuid) {
+        clientUuid = matchUuid[1].trim();
+      }
+
+      const speciesLookup = String(row[8] || 'Chưa rõ loài');
+      // Trích xuất nhóm
+      let group = 'Khác / Chưa rõ';
+      const commonGroups = ['Chim', 'Thú', 'Thực vật', 'Bò sát', 'Cá'];
+      for (let g of commonGroups) {
+        if (speciesLookup.indexOf(g) !== -1) {
+          group = g;
+          break;
+        }
+      }
+
+      records.push({
+        recordId: recordId,
+        clientUuid: clientUuid,
+        observedDate: dateStr,
+        observedTime: timeStr,
+        unit: String(row[5] || ''),
+        reporterName: String(row[6] || ''),
+        contact: String(row[7] || ''),
+        speciesLookup: speciesLookup,
+        label: speciesLookup.split(' (')[0],
+        group: group,
+        quantity: Number(row[14]) || 1,
+        countUnit: String(row[15] || 'Cá thể'),
+        lat: lat,
+        lon: lon,
+        locationNote: String(row[19] || ''),
+        habitat: String(row[20] || 'Rừng khộp'),
+        behavior: String(row[21] || ''),
+        status: String(row[22] || 'Chờ xác minh'),
+        method: String(row[23] || 'Quan sát trực tiếp'),
+        folderUrl: String(row[24] || ''),
+        notes: notesRaw.replace(/\[UUID:[^\]]+\]/, '').trim(),
+        synced: true
+      });
+    }
+
+    return {
+      success: true,
+      count: records.length,
+      records: records
+    };
+  } catch (err) {
+    return { success: false, error: err.message, records: [] };
   }
 }
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yokdon-biolog-v7';
+const CACHE_NAME = 'yokdon-biolog-v8';
 
 // Tài nguyên lõi cần thiết để ứng dụng hoạt động ngoại tuyến ngay lập tức
 const CORE_ASSETS = [
@@ -16,7 +16,6 @@ const CORE_ASSETS = [
   './layer_tieukhu.geojson',
   './layer_tieukhu_diem.geojson',
   './layer_ql14c.geojson',
-  './layer_giaothong.geojson',
   './layer_biengioi_cpc.geojson',
   './layer_hanhchinh.geojson',
   './layer_hctext.geojson',
